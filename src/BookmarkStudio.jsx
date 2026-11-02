@@ -10,8 +10,8 @@ function Player({id,ready,onState}){
  if(window.YT?.Player)create();else{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{prev?.();create()};if(!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s)}}
  return()=>{disposed=true;ready(null);try{player?.destroy()}catch{}}},[id]);return <div className="ref-video">{id?<div ref={mount}/>:<p>유튜브 링크를 등록하면 여기서 영상이 재생돼.</p>}</div>
 }
-export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,notify}){
- const [v,setV]=useState(()=>({id:uid(),genre:data.genres[0],title:'',category:'',subcategory:'',url:'',memo:'',clips:[],...item}));
+export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,onUpdateMove,notify}){
+ const [v,setV]=useState(()=>({id:uid(),genre:initialGenre||data.genres[0],title:'',category:'',subcategory:'',url:'',memo:'',clips:[],...item}));
  const [mode,setMode]=useState(item?'practice':'edit'),[index,setIndex]=useState(0),[repeat,setRepeat]=useState(true),[playing,setPlaying]=useState(false);
  const [time,setTime]=useState(0),[ready,setReady]=useState(false);
  const [reviewStatus,setReviewStatus]=useState(''),[reviewNote,setReviewNote]=useState('');
@@ -56,7 +56,7 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
   {clips.length>0&&<div className="ref-tabs">{clips.map((c,i)=><button type="button" key={c.id||i} className={i===index?'chosen':''} onClick={()=>pick(i)}>{data.moves.find(m=>m.id===c.moveId)?.name||'동작 선택'}<small>{c.start}–{c.end}</small></button>)}</div>}
   {!clips.length&&<p className="ref-hint">편집 모드에서 영상 속 동작 구간을 추가해 줘. 한 영상에 여러 동작을 연결할 수 있어.</p>}
   {clip&&(mode==='edit'?<div className="ref-fields">
-   <label>연결할 동작<select value={clip.moveId||''} onChange={e=>update('moveId',e.target.value)}><option value="">동작 선택</option>{data.moves.filter(m=>m.genre===v.genre).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+   <label>연결할 동작<select value={clip.moveId||''} onChange={e=>update('moveId',e.target.value)}><option value="">동작 선택</option>{data.moves.map(m=><option key={m.id} value={m.id}>{m.genre} · {m.name}</option>)}</select></label>
    <div className="ref-two"><label>시작 (mm:ss)<input value={clip.start} onChange={e=>update('start',e.target.value)}/></label><label>종료 (mm:ss)<input value={clip.end} onChange={e=>update('end',e.target.value)}/></label></div>
    <div className="ref-two"><button type="button" onClick={()=>update('start',fmt(time))}>현재 위치 → 시작</button><button type="button" onClick={()=>update('end',fmt(time))}>현재 위치 → 종료</button></div>
    <button type="button" className="ref-remove" onClick={()=>{change('clips',clips.filter((_,i)=>i!==index));setIndex(Math.max(0,index-1))}}><Trash2 size={13}/> 이 구간 삭제</button>
