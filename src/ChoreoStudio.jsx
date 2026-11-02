@@ -128,8 +128,9 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
           <input aria-label="음악 북마크 검색" placeholder="곡 제목·아티스트 검색" value={musicSearch} onChange={e=>setMusicSearch(e.target.value)}/>
           <div className="studio-music-results">{(data.musicBookmarks||[]).filter(song=>[song.title,song.artist,song.memo].join(' ').toLowerCase().includes(musicSearch.toLowerCase())).map(song=><button type="button" key={song.id} className="studio-music-result" onClick={()=>{
             setV(prev=>({...prev,music:[song.artist,song.title].filter(Boolean).join(' — '),url:song.url||''}));
-            if(Number(song.bpm)>=20&&Number(song.bpm)<=240)configure('bpm',Number(song.bpm));
-            if(typeof song.half==='boolean')configure('half',song.half);
+            const nextBpm=Number(song.bpm)>=20&&Number(song.bpm)<=240?Number(song.bpm):bpm;
+            const nextHalf=typeof song.half==='boolean'?song.half:half;
+            setBpm(nextBpm);setHalf(nextHalf);segments(old=>syncCounts(old,nextBpm,nextHalf,offset));
             setMusicPicker(false);
             notify('음악 북마크를 가져왔어.');
           }}><strong>{song.title}</strong><small>{song.artist}{song.bpm?' · '+song.bpm+' BPM':''}{song.half?' · 하프타임':''}</small></button>)}</div>
