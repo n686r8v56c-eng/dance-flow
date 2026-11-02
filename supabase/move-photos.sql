@@ -6,3 +6,5 @@ create policy "dance move photos authenticated upload" on storage.objects for in
 with check (bucket_id='dance-move-photos' and (storage.foldername(name))[1]=auth.uid()::text);
 create policy "dance move photos authenticated access" on storage.objects for select to authenticated
 using (bucket_id='dance-move-photos' and (storage.foldername(name))[1]=auth.uid()::text);
+create policy "dance move photos authenticated delete" on storage.objects for delete to authenticated
+using (bucket_id='dance-move-photos' and (storage.foldername(name))[1]=auth.uid()::text);
