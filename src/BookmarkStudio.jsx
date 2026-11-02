@@ -66,6 +66,8 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
    <div className="ref-two"><button type="button" disabled={!ready} onClick={()=>seek(parse(clip.start))}><Play size={14}/> 구간 재생</button><button type="button" className={repeat?'selected':''} onClick={()=>setRepeat(x=>!x)}><Repeat size={14}/> 반복 {repeat?'ON':'OFF'}</button></div>
    <label>동작 숙련도<select value={data.moves.find(m=>m.id===clip.moveId)?.status||'미습득'} onChange={e=>onUpdateMove(clip.moveId,e.target.value)}>{levels.map(x=><option key={x}>{x}</option>)}</select></label>
    <small>숙련도는 동작 라이브러리와 같은 값을 사용해.</small>
+   {data.moves.find(m=>m.id===clip.moveId)?.lastEvaluatedAt&&<small>마지막 평가: {new Date(data.moves.find(m=>m.id===clip.moveId).lastEvaluatedAt).toLocaleDateString('ko-KR')}</small>}
+   {(data.moves.find(m=>m.id===clip.moveId)?.statusHistory||[]).length>0&&<div className="ref-evaluation-history"><strong>평가 이력</strong>{[...(data.moves.find(m=>m.id===clip.moveId).statusHistory||[])].reverse().slice(0,10).map(h=><small key={h.id}>{new Date(h.at).toLocaleDateString('ko-KR')} · {h.status} · {h.source}</small>)}</div>}
   </div>)}
   <button className="primary" type="button" onClick={save}><Check size={15}/> 저장</button>
   {item&&mode==='edit'&&<button type="button" className="danger-text" onClick={onDelete}><Trash2 size={14}/> 북마크 삭제</button>}
