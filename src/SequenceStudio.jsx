@@ -2,6 +2,7 @@ import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Play,Pause,Square,Volume2,VolumeX,ChevronLeft,ChevronRight,Check,ArrowUp,ArrowDown,Trash2,Plus} from 'lucide-react';
 import {uid} from './data';
 import './sequence-studio.css';
+import TapBpm from './TapBpm';
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||min));
 export default function SequenceStudio({item,initialGenre,data,onSave,onDelete,notify}){
@@ -136,7 +137,7 @@ export default function SequenceStudio({item,initialGenre,data,onSave,onDelete,n
       <label className="field"><span>장르</span><select value={v.genre} onChange={e=>setV(old=>({...old,genre:e.target.value,steps:[]}))}>{data.genres.map(g=><option key={g}>{g}</option>)}</select></label>
       <label className="field"><span>시퀀스 이름</span><input value={v.name} onChange={e=>change('name',e.target.value)}/></label>
       <div className="cols">
-        <label className="field"><span>BPM</span><input type="number" min="20" max="240" value={v.bpm} onChange={e=>change('bpm',Number(e.target.value))}/></label>
+        <div className="seq-bpm-row"><label className="field"><span>BPM</span><input type="number" min="20" max="240" value={v.bpm} onChange={e=>change('bpm',Number(e.target.value))}/></label><TapBpm onApply={n=>change('bpm',n)}/></div>
         <label className="field"><span>반복 횟수</span><input type="number" min="1" max="108" value={v.repeat} onChange={e=>change('repeat',Number(e.target.value))}/></label>
       </div>
       <div className="seq-edit-header"><strong>동작 순서</strong><button type="button" className="secondary compact" disabled={!data.moves.some(m=>m.genre===v.genre)} onClick={()=>change('steps',[...v.steps,{moveId:data.moves.find(m=>m.genre===v.genre).id,counts:8,side:'양쪽'}])}><Plus size={14}/> 동작</button></div>

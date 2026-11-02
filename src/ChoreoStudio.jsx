@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Play,Pause,Repeat,ExternalLink,Plus,ArrowUp,ArrowDown,Trash2,Check,Music2} from 'lucide-react';
 import {uid,getYoutubeId,safeLink} from './data';
 import './studio.css';
+import TapBpm from './TapBpm';
 
 const states=['미시작','동작 암기 중','음악 연습 중','완성'];
 const toSeconds=(s)=>{const m=String(s||'').trim().match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
@@ -120,7 +121,7 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
     {mode==='edit'&&<div className="studio-count-panel">
       <div className="studio-modes" role="tablist" aria-label="시간과 카운트 보기"><button type="button" role="tab" aria-selected={view==='time'} className={view==='time'?'active':''} onClick={()=>setView('time')}>시간 보기</button><button type="button" role="tab" aria-selected={view==='counts'} className={view==='counts'?'active':''} onClick={()=>setView('counts')}>카운트 보기</button></div>
       {view==='counts'&&<>
-        <label className="field"><span>음악 BPM</span><input type="number" min="20" max="240" value={bpm} onChange={e=>{const n=Number(e.target.value);if(n>=20&&n<=240)configure('bpm',n)}}/></label>
+        <div className="studio-bpm-row"><label className="field"><span>음악 BPM</span><input type="number" min="20" max="240" value={bpm} onChange={e=>{const n=Number(e.target.value);if(n>=20&&n<=240)configure('bpm',n)}}/></label><TapBpm onApply={n=>configure('bpm',n)}/></div>
         <div className="studio-modes"><button type="button" className={!half?'active':''} onClick={()=>configure('half',false)}>일반 카운트</button><button type="button" className={half?'active':''} onClick={()=>configure('half',true)}>하프타임</button></div>
         <label className="field"><span>첫 카운트 시작 위치 (초)</span><input type="number" min="0" max="3600" value={offset} onChange={e=>configure('offset',Math.max(0,Math.min(3600,Number(e.target.value)||0)))}/></label>
         <p className="studio-hint">카운트 속도 {bpm/(half?2:1)} BPM · 8카운트 약 {(480/(bpm/(half?2:1))).toFixed(1)}초. 값을 변경하면 뒤 구간 시간도 다시 계산돼.</p>
