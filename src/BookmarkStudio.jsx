@@ -46,12 +46,6 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
  return <div className="ref-studio">
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
   <Player id={videoId} ready={target=>{player.current=target;setReady(Boolean(target))}} onState={state=>setPlaying(state===1)}/>
-  {mode==='edit'&&<div className="ref-fields">
-   <label>유튜브 URL<input type="url" value={v.url} onChange={e=>change('url',e.target.value)}/></label>
-   <label>영상 제목<input value={v.title} onChange={e=>change('title',e.target.value)} placeholder={titleLoading?'영상 제목 조회 중…':'영상 제목 자동 입력'}/></label>
-   {(titleLoading||titleNotice)&&<small className="ref-hint">{titleLoading?'유튜브 제목을 확인하는 중…':titleNotice}</small>}
-
-  </div>}
   <div className="ref-heading"><strong>연결 동작 · 영상 구간</strong>{mode==='edit'&&<button type="button" onClick={()=>{change('clips',[...clips,{id:uid(),moveId:data.moves.find(m=>m.genre===v.genre)?.id||'',start:fmt(time),end:fmt(time+10)}]);setIndex(clips.length)}}><Plus size={14}/> 구간 추가</button>}</div>
   {clips.length>0&&<div className="ref-tabs">{clips.map((c,i)=><button type="button" key={c.id||i} className={i===index?'chosen':''} onClick={()=>pick(i)}>{data.moves.find(m=>m.id===c.moveId)?.name||'동작 선택'}<small>{c.start}–{c.end}</small></button>)}</div>}
   {!clips.length&&<p className="ref-hint">편집 모드에서 영상 속 동작 구간을 추가해 줘. 한 영상에 여러 동작을 연결할 수 있어.</p>}
@@ -59,6 +53,7 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
    <label>연결할 동작<select value={clip.moveId||''} onChange={e=>update('moveId',e.target.value)}><option value="">동작 선택</option>{data.moves.map(m=><option key={m.id} value={m.id}>{m.genre} · {m.name}</option>)}</select></label>
    <div className="ref-two"><label>시작 (mm:ss)<input value={clip.start} onChange={e=>update('start',e.target.value)}/></label><label>종료 (mm:ss)<input value={clip.end} onChange={e=>update('end',e.target.value)}/></label></div>
    <div className="ref-two"><button type="button" onClick={()=>update('start',fmt(time))}>현재 위치 → 시작</button><button type="button" onClick={()=>update('end',fmt(time))}>현재 위치 → 종료</button></div>
+   <label>주의할 점<textarea rows="3" value={clip.caution||''} onChange={e=>update('caution',e.target.value)} placeholder="이 구간에서 주의할 자세나 동작 포인트"/></label>
    <button type="button" className="ref-remove" onClick={()=>{change('clips',clips.filter((_,i)=>i!==index));setIndex(Math.max(0,index-1))}}><Trash2 size={13}/> 이 구간 삭제</button>
   </div>:<div className="ref-practice">
    <strong>{data.moves.find(m=>m.id===clip.moveId)?.name||'삭제된 동작'}</strong><small>{clip.start} – {clip.end}</small>
@@ -68,6 +63,11 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
    {data.moves.find(m=>m.id===clip.moveId)?.lastEvaluatedAt&&<small>마지막 평가: {new Date(data.moves.find(m=>m.id===clip.moveId).lastEvaluatedAt).toLocaleDateString('ko-KR')}</small>}
    {(data.moves.find(m=>m.id===clip.moveId)?.statusHistory||[]).length>0&&<div className="ref-evaluation-history"><strong>평가 이력</strong>{[...(data.moves.find(m=>m.id===clip.moveId).statusHistory||[])].reverse().slice(0,10).map(h=><div key={h.id} className="skill-note-entry"><small>{new Date(h.at).toLocaleDateString('ko-KR')} · {h.status} · {h.source}</small>{h.note&&<p>{h.note}</p>}</div>)}</div>}
   </div>)}
+  {mode==='edit'&&<div className="ref-fields">
+   <label>유튜브 URL<input type="url" value={v.url} onChange={e=>change('url',e.target.value)}/></label>
+   <label>영상 제목<input value={v.title} onChange={e=>change('title',e.target.value)} placeholder={titleLoading?'영상 제목 조회 중…':'영상 제목 자동 입력'}/></label>
+   {(titleLoading||titleNotice)&&<small className="ref-hint">{titleLoading?'유튜브 제목을 확인하는 중…':titleNotice}</small>}
+  </div>}
   <button className="primary" type="button" onClick={save}><Check size={15}/> 저장</button>
   {item&&mode==='edit'&&<button type="button" className="danger-text" onClick={onDelete}><Trash2 size={14}/> 북마크 삭제</button>}
  </div>
