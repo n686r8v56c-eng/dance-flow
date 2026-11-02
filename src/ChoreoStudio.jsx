@@ -1,0 +1,120 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {Play,Pause,Repeat,ExternalLink,Plus,ArrowUp,ArrowDown,Trash2,Check,Music2} from 'lucide-react';
+import {uid,getYoutubeId,safeLink} from './data';
+import './studio.css';
+
+const states=['미시작','동작 암기 중','음악 연습 중','완성'];
+const toSeconds=(s)=>{const m=String(s||'').trim().match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
+const format=(s)=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+function YoutubePlayer({videoId,playerRef,onReady}) {
+  const mount=useRef(null);
+  useEffect(()=>{
+    if(!videoId){playerRef.current=null;return;}
+    let disposed=false,p=null;
+    const create=()=>{
+      if(disposed||!mount.current||!window.YT?.Player)return;
+      p=new window.YT.Player(mount.current,{videoId,playerVars:{playsinline:1,rel:0,enablejsapi:1,origin:location.origin},events:{onReady:e=>{if(!disposed){playerRef.current=e.target;onReady(true)}},onError:()=>onReady(false)}});
+    };
+    if(window.YT?.Player)create();
+    else{
+      const previous=window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady=()=>{if(typeof previous==='function')previous();create()};
+      if(!document.querySelector('script[data-dance-youtube]')){
+        const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.dataset.danceYoutube='1';document.head.appendChild(script);
+      }
+    }
+    return()=>{disposed=true;onReady(false);playerRef.current=null;try{p?.destroy()}catch{}};
+  },[videoId,playerRef,onReady]);
+  return <div className="studio-video-frame">{videoId?<div ref={mount} className="studio-video-mount"/>:<div className="studio-video-empty"><Music2 size={28}/>유튜브 영상 링크를 등록해 줘.</div>}</div>;
+}
+export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,notify}) {
+  const [v,setV]=useState(()=>({id:uid(),genre:initialGenre,name:'',music:'',url:'',segments:[],...(item||{})}));
+  const [mode,setMode]=useState(item?'practice':'edit');
+  const [selected,setSelected]=useState(0);
+  const [loop,setLoop]=useState(false);
+  const [speed,setSpeed]=useState(1);
+  const [playing,setPlaying]=useState(false);
+  const [ready,setReady]=useState(false);
+  const player=useRef(null);
+  const readyChange=React.useCallback(x=>setReady(x),[]);
+  const id=getYoutubeId(v.url);
+  const seg=v.segments?.[selected];
+  const patch=(key,value)=>setV(p=>({...p,[key]:value}));
+  const segments=(updater)=>setV(p=>({...p,segments:updater(p.segments||[])}));
+  const editSeg=(key,value)=>segments(a=>a.map((s,i)=>i===selected?{...s,[key]:value}:s));
+  const jump=(index,autoPlay=true)=>{
+    setSelected(index);
+    const target=v.segments[index],at=toSeconds(target?.start);
+    if(Number.isFinite(at)&&player.current?.seekTo){player.current.seekTo(at,true);if(autoPlay){player.current.playVideo();setPlaying(true)}}
+  };
+  useEffect(()=>{
+    if(!loop||mode!=='practice'||!ready||!id)return;
+    const timer=setInterval(()=>{
+      const p=player.current,segment=v.segments[selected];
+      if(!p||!segment)return;
+      const start=toSeconds(segment.start),end=toSeconds(segment.end);
+      if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return;
+      try{if(p.getPlayerState()===1&&p.getCurrentTime()>=end-.12)p.seekTo(start,true)}catch{}
+    },250);
+    return()=>clearInterval(timer);
+  },[loop,mode,ready,id,selected,v.segments]);
+  function save(){
+    if(!v.name.trim()){notify('안무 이름을 입력해 줘.');setMode('edit');return}
+    if(v.url&&!safeLink(v.url)){notify('올바른 영상 링크를 입력해 줘.');setMode('edit');return}
+    for(const s of v.segments){
+      const a=toSeconds(s.start),b=toSeconds(s.end);
+      if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a){notify('구간 시간은 mm:ss 형식이고 끝이 시작보다 뒤여야 해.');setMode('edit');return}
+    }
+    onSave(v);
+  }
+  function addSegment(){
+    const prev=v.segments.at(-1),start=prev?.end||'00:00';
+    segments(a=>[...a,{id:uid(),name:'구간 '+(a.length+1),start,end:format((toSeconds(start)||0)+30),status:'미시작',sequenceId:''}]);
+    setSelected(v.segments.length);
+  }
+  function moveSegment(direction){
+    const j=selected+direction;if(j<0||j>=v.segments.length)return;
+    segments(a=>{const copy=[...a];[copy[selected],copy[j]]=[copy[j],copy[selected]];return copy});setSelected(j);
+  }
+  function setPlaybackSpeed(n){setSpeed(n);try{player.current?.setPlaybackRate(n)}catch{notify('이 영상에서는 해당 속도가 지원되지 않아.')}}
+  return <div className="studio-root">
+    <div className="studio-modes" role="tablist" aria-label="안무 스튜디오 모드">
+      <button type="button" className={mode==='practice'?'active':''} onClick={()=>setMode('practice')} role="tab" aria-selected={mode==='practice'}>연습 모드</button>
+      <button type="button" className={mode==='edit'?'active':''} onClick={()=>setMode('edit')} role="tab" aria-selected={mode==='edit'}>편집 모드</button>
+    </div>
+    <YoutubePlayer videoId={id} playerRef={player} onReady={readyChange}/>
+    {v.url&&<a className="studio-external" href={safeLink(v.url)||'#'} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 유튜브에서 열기 (임베드 제한 영상)</a>}
+    {mode==='practice'?<div className="studio-practice">
+      <div className="studio-controls">
+        <button type="button" disabled={!ready} onClick={()=>{if(playing){player.current?.pauseVideo();setPlaying(false)}else{player.current?.playVideo();setPlaying(true)}}}>{playing?<Pause size={17}/>:<Play size={17}/>} {playing?'일시정지':'재생'}</button>
+        <button type="button" className={loop?'active':''} aria-pressed={loop} onClick={()=>setLoop(x=>!x)}><Repeat size={16}/> 반복 {loop?'ON':'OFF'}</button>
+        <select aria-label="재생 속도" value={speed} onChange={e=>setPlaybackSpeed(Number(e.target.value))}>{[.5,.75,1,1.25,1.5,2].map(n=><option key={n} value={n}>{n}×</option>)}</select>
+      </div>
+      <p className="studio-hint">구간 선택 시 시작 시간으로 이동해. 반복 ON은 해당 구간을 계속 재생해.</p>
+    </div>:<div className="studio-edit">
+      <label className="field"><span>장르</span><select value={v.genre} onChange={e=>{const genre=e.target.value;setV(p=>({...p,genre,segments:p.segments.map(s=>({...s,sequenceId:''}))}))}}>{data.genres.map(g=><option key={g}>{g}</option>)}</select></label>
+      <label className="field"><span>안무 이름</span><input value={v.name} onChange={e=>patch('name',e.target.value)}/></label>
+      <label className="field"><span>음악 / 곡 이름</span><input value={v.music} onChange={e=>patch('music',e.target.value)}/></label>
+      <label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>
+    </div>}
+    <div className="studio-heading"><strong>안무 구간</strong>{mode==='edit'&&<button type="button" className="secondary compact" onClick={addSegment}><Plus size={14}/> 구간</button>}</div>
+    <div className="segment-strip studio-strip">{v.segments.map((s,i)=><button type="button" key={s.id} className={i===selected?'selected':''} onClick={()=>mode==='practice'?jump(i):setSelected(i)}>{s.name}<small>{s.start}</small></button>)}</div>
+    {!v.segments.length&&<p className="studio-hint">편집 모드에서 첫 번째 구간을 추가해 줘.</p>}
+    {seg&&(mode==='practice'?<div className="studio-segment studio-summary">
+      <div className="studio-segment-title"><strong>{seg.name}</strong><span>{seg.start} – {seg.end}</span></div>
+      {seg.sequenceId?<div className="studio-steps">{(data.sequences.find(s=>s.id===seg.sequenceId)?.steps||[]).map((s,i)=><div key={i}>{i+1}. {data.moves.find(m=>m.id===s.moveId)?.name||'삭제된 동작'} · {s.counts}박</div>)}</div>:<p className="studio-hint">연결된 시퀀스가 없어.</p>}
+      <label className="field"><span>구간 숙련도</span><select value={seg.status} onChange={e=>editSeg('status',e.target.value)}>{states.map(s=><option key={s}>{s}</option>)}</select></label>
+      <button type="button" className="secondary compact" onClick={()=>jump(selected)}>이 구간 재생</button>
+    </div>:<div className="studio-segment">
+      <div className="editor-tools"><button type="button" onClick={()=>moveSegment(-1)} aria-label="위로"><ArrowUp size={15}/></button><button type="button" onClick={()=>moveSegment(1)} aria-label="아래로"><ArrowDown size={15}/></button><button type="button" onClick={()=>{segments(a=>a.filter((_,i)=>i!==selected));setSelected(Math.max(0,selected-1))}} aria-label="구간 삭제"><Trash2 size={15}/></button></div>
+      <label className="field"><span>구간 이름</span><input value={seg.name} onChange={e=>editSeg('name',e.target.value)}/></label>
+      <div className="cols"><label className="field"><span>시작 (mm:ss)</span><input value={seg.start} onChange={e=>editSeg('start',e.target.value)}/></label><label className="field"><span>끝 (mm:ss)</span><input value={seg.end} onChange={e=>editSeg('end',e.target.value)}/></label></div>
+      <label className="field"><span>연결 시퀀스</span><select value={seg.sequenceId||''} onChange={e=>editSeg('sequenceId',e.target.value)}><option value="">없음</option>{data.sequences.filter(s=>s.genre===v.genre).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+      <label className="field"><span>진행 상황</span><select value={seg.status} onChange={e=>editSeg('status',e.target.value)}>{states.map(s=><option key={s}>{s}</option>)}</select></label>
+      <button type="button" className="secondary compact" onClick={()=>jump(selected)}>이 구간 미리 재생</button>
+    </div>)}
+    <button type="button" className="primary studio-save" onClick={save}><Check size={16}/> 저장</button>
+    {item&&mode==='edit'&&<button type="button" className="danger-text" onClick={onDelete}><Trash2 size={14}/> 안무 삭제</button>}
+  </div>;
+}
