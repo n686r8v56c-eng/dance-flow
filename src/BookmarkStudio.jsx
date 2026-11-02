@@ -43,7 +43,7 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
  const update=(key,value)=>change('clips',clips.map((c,i)=>i===index?{...c,[key]:value}:c));
  const seek=(seconds,play=true)=>{if(!Number.isFinite(seconds)||!player.current)return;player.current.seekTo(seconds,true);if(play)player.current.playVideo()};
  useEffect(()=>{if(!ready)return;const timer=setInterval(()=>{try{const t=player.current?.getCurrentTime?.()||0;setTime(t);if(mode==='practice'&&playing&&repeat&&clip){const a=parse(clip.start),b=parse(clip.end);if(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&t>=b-.12)player.current.seekTo(a,true)}}catch{}},200);return()=>clearInterval(timer)},[ready,mode,playing,repeat,index,v.clips]);
- const pick=i=>{setIndex(i);setReviewStatus('');setReviewNote('');seek(parse(clips[i]?.start),mode==='edit'?false:true)};
+ const pick=i=>{setIndex(i);setReviewStatus('');setReviewNote('');seek(parse(clips[i]?.start),true)};
  const save=()=>{if(!v.title.trim())return notify('영상 제목을 입력해 줘.');if(!videoId)return notify('유효한 유튜브 영상 링크를 입력해 줘.');if(clips.some(c=>!data.moves.some(m=>m.id===c.moveId)||!Number.isFinite(parse(c.start))||!Number.isFinite(parse(c.end))||parse(c.end)<=parse(c.start)))return notify('구간의 연결 동작과 시작·종료 시간을 확인해 줘.');onSave(v)};
  return <div className="ref-studio">
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
