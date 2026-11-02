@@ -3,9 +3,10 @@ import {Play,Pause,Square,Volume2,VolumeX,ChevronLeft,ChevronRight,Check,ArrowUp
 import {uid} from './data';
 import './sequence-studio.css';
 import TapBpm from './TapBpm';
+import usePracticeLog from './usePracticeLog';
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||min));
-export default function SequenceStudio({item,initialGenre,data,onSave,onDelete,notify}){
+export default function SequenceStudio({item,initialGenre,data,onSave,onDelete,notify,onPracticeRecord}){
   const [v,setV]=useState(()=>({id:uid(),genre:initialGenre,name:'',bpm:90,repeat:2,steps:[],...(item||{})}));
   const [mode,setMode]=useState(item?'practice':'edit');
   const [running,setRunning]=useState(false);
@@ -21,6 +22,7 @@ export default function SequenceStudio({item,initialGenre,data,onSave,onDelete,n
   const [finished,setFinished]=useState(false);
   const audio=useRef(null),clock=useRef(null),state=useRef({elapsed:0,start:0,running:false}),lastTick=useRef(-1),lastStep=useRef(-1),voiceOn=useRef(true),metroOn=useRef(true),voiceVol=useRef(.8),metroVol=useRef(.45),latest=useRef(v);
   latest.current=v;voiceOn.current=voice;metroOn.current=metronome;voiceVol.current=voiceVolume;metroVol.current=metronomeVolume;
+  usePracticeLog(running&&phase==='practice',v.genre,'시퀀스 · '+(v.name||'이름 없음'),onPracticeRecord);
   const current=v.steps[stepIndex];
   const moveName=id=>data.moves.find(m=>m.id===id)?.name||'삭제된 동작';
   const totalCounts=v.steps.reduce((sum,s)=>sum+clamp(s.counts,1,256),0);

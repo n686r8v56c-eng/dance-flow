@@ -4,6 +4,7 @@ import {uid,getYoutubeId,safeLink} from './data';
 import './studio.css';
 import TapBpm from './TapBpm';
 import AudioCoach from './AudioCoach';
+import usePracticeLog from './usePracticeLog';
 
 const states=['미시작','동작 암기 중','음악 연습 중','완성'];
 const toSeconds=(s)=>{const m=String(s||'').trim().match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
@@ -33,14 +34,12 @@ function YoutubePlayer({videoId,playerRef,onReady}) {
   },[videoId,playerRef,onReady]);
   return <div className="studio-video-frame">{videoId?<div ref={mount} className="studio-video-mount"/>:<div className="studio-video-empty"><Music2 size={28}/>유튜브 영상 링크를 등록해 줘.</div>}</div>;
 }
-export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,notify}) {
+export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,notify,onPracticeRecord}) {
   const [v,setV]=useState(()=>({id:uid(),genre:initialGenre,name:'',music:'',url:'',segments:[],...(item||{})}));
   const [mode,setMode]=useState(item?'practice':'edit');
   const [source,setSource]=useState(item?.audioSource==='file'?'file':'youtube');
   const [musicPicker,setMusicPicker]=useState(false);
   const [musicSearch,setMusicSearch]=useState('');
-  const [choreoPicker,setChoreoPicker]=useState(false);
-  const [choreoSearch,setChoreoSearch]=useState('');
   const [choreoPicker,setChoreoPicker]=useState(false);
   const [choreoSearch,setChoreoSearch]=useState('');
   const [view,setView]=useState('time');
@@ -52,9 +51,13 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
   const [speed,setSpeed]=useState(1);
   const [playing,setPlaying]=useState(false);
   const [ready,setReady]=useState(false);
+  const [filePlaying,setFilePlaying]=useState(false);
+  const [youtubePlaying,setYoutubePlaying]=useState(false);
+  usePracticeLog(mode==='practice'&&(source==='file'?filePlaying:youtubePlaying),v.genre,'안무 · '+(v.name||'이름 없음'),onPracticeRecord);
   const player=useRef(null);
   const readyChange=React.useCallback(x=>setReady(x),[]);
   const id=getYoutubeId(v.url);
+  useEffect(()=>{if(mode!=='practice'||source!=='youtube'||!ready){setYoutubePlaying(false);return}const check=()=>{try{setYoutubePlaying(player.current?.getPlayerState?.()===1)}catch{setYoutubePlaying(false)}};check();const poll=setInterval(check,450);return()=>clearInterval(poll)},[mode,source,ready,id]);
   const seg=v.segments?.[selected];
   const defaultEights=(s)=>Math.max(1,Math.round(((toSeconds(s?.end)||0)-(toSeconds(s?.start)||0))/calcSeconds(1,bpm,half))||1);
   const eights=(s)=>positive(s?.eightCounts,defaultEights(s));
@@ -112,7 +115,7 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       <button type="button" className={mode==='edit'?'active':''} onClick={()=>setMode('edit')} role="tab" aria-selected={mode==='edit'}>편집 모드</button>
     </div>
     <div className="studio-modes"><button type="button" className={source==='youtube'?'active':''} onClick={()=>setSource('youtube')}>유튜브</button><button type="button" className={source==='file'?'active':''} onClick={()=>setSource('file')}>내 음악 파일</button></div>
-    {source==='youtube'?<YoutubePlayer videoId={id} playerRef={player} onReady={readyChange}/>:mode==='practice'?<AudioCoach choreo={v} sequences={data.sequences} moves={data.moves} bpm={bpm} half={half} offset={offset} selected={selected} onSelect={setSelected} loop={loop} notify={notify} onTrackName={name=>patch('music',name)}/>:<p className="studio-hint">연습 모드에서 음악 파일을 선택하면 이 기기에 저장돼.</p>}
+    {source==='youtube'?<YoutubePlayer videoId={id} playerRef={player} onReady={readyChange}/>:mode==='practice'?<AudioCoach choreo={v} sequences={data.sequences} moves={data.moves} bpm={bpm} half={half} offset={offset} selected={selected} onSelect={setSelected} loop={loop} notify={notify} onTrackName={name=>patch('music',name)} onPlaybackChange={setFilePlaying}/>:<p className="studio-hint">연습 모드에서 음악 파일을 선택하면 이 기기에 저장돼.</p>}
     {source==='youtube'&&v.url&&<a className="studio-external" href={safeLink(v.url)||'#'} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 유튜브에서 열기 (임베드 제한 영상)</a>}
     {mode==='practice'&&source==='youtube'?<div className="studio-practice">
       <div className="studio-controls">

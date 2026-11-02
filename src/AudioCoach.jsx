@@ -7,7 +7,7 @@ const readTrack=async id=>{const db=await openDb();return new Promise((resolve,r
 const storeTrack=async(id,file)=>{const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction('tracks','readwrite');tx.objectStore('tracks').put(file,id);tx.oncomplete=()=>{resolve();db.close()};tx.onerror=()=>{reject(tx.error);db.close()}})};
 const seconds=s=>{const m=String(s||'').match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
 const number=(v,fallback)=>Number.isFinite(Number(v))&&Number(v)>0?Number(v):fallback;
-export default function AudioCoach({choreo,sequences,moves,bpm,half,offset,selected,onSelect,loop,notify,onTrackName}){
+export default function AudioCoach({choreo,sequences,moves,bpm,half,offset,selected,onSelect,loop,notify,onTrackName,onPlaybackChange}){
  const audio=useRef(null),ctx=useRef(null),objectUrl=useRef(null),tickRef=useRef(-1),cueRef=useRef(''),timeRef=useRef(0);
  const [track,setTrack]=useState(null),[loaded,setLoaded]=useState(false),[running,setRunning]=useState(false);
  const [sound,setSound]=useState('clap'),[voice,setVoice]=useState(true),[counts,setCounts]=useState(false);
@@ -51,7 +51,7 @@ export default function AudioCoach({choreo,sequences,moves,bpm,half,offset,selec
  useEffect(()=>()=>{window.speechSynthesis?.cancel();ctx.current?.close()},[]);
  return <div className="coach-root">
   <label className="coach-upload"><Upload size={15}/> 음악 파일 선택 · 이 기기에 저장<input type="file" accept="audio/*,.mp3,.m4a,.wav" onChange={upload}/></label>
-  {track?<><div className="coach-track"><Music2 size={18}/><strong>{track.name}</strong></div><audio ref={audio} src={track.url} preload="metadata" onLoadedMetadata={e=>{setLoaded(true);setDuration(e.currentTarget.duration||0)}} onPause={()=>setRunning(false)} onPlay={()=>setRunning(true)} onEnded={()=>setRunning(false)}/>
+  {track?<><div className="coach-track"><Music2 size={18}/><strong>{track.name}</strong></div><audio ref={audio} src={track.url} preload="metadata" onLoadedMetadata={e=>{setLoaded(true);setDuration(e.currentTarget.duration||0)}} onPause={()=>{setRunning(false);onPlaybackChange?.(false)}} onPlay={()=>{setRunning(true);onPlaybackChange?.(true)}} onEnded={()=>{setRunning(false);onPlaybackChange?.(false)}}/>
    <div className="coach-player"><button type="button" onClick={toggle}><span>{running?'❚❚':'▶'}</span> {running?'일시정지':'재생'}</button><input aria-label="재생 위치" type="range" min="0" max={duration||1} step=".1" value={Math.min(time,duration||1)} onChange={e=>seek(Number(e.target.value))}/><small>{Math.floor(time/60)}:{String(Math.floor(time%60)).padStart(2,'0')}</small></div>
   </>:<p className="studio-hint">음악 파일은 이 기기에만 저장돼. 다른 기기에서는 파일을 다시 선택해야 해.</p>}
   <div className="coach-guide"><div className="coach-guide-head"><strong>{info.section}</strong><small>{effectiveBpm} BPM · {half?'하프타임':'일반'}</small></div><small>현재 동작</small><strong className="coach-current">{info.move}</strong><small>다음 · {info.next}</small><div className="coach-dots">{Array.from({length:8},(_,i)=><span key={i} className={info.beat===i+1?'active':''}>{i+1}</span>)}</div></div>
