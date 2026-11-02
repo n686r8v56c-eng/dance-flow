@@ -50,9 +50,7 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
    <label>유튜브 URL<input type="url" value={v.url} onChange={e=>change('url',e.target.value)}/></label>
    <label>영상 제목<input value={v.title} onChange={e=>change('title',e.target.value)} placeholder={titleLoading?'영상 제목 조회 중…':'영상 제목 자동 입력'}/></label>
    {(titleLoading||titleNotice)&&<small className="ref-hint">{titleLoading?'유튜브 제목을 확인하는 중…':titleNotice}</small>}
-   <label>장르<select value={v.genre} onChange={e=>change('genre',e.target.value)}>{data.genres.map(g=><option key={g}>{g}</option>)}</select></label>
-   <div className="ref-two"><label>대분류<input value={v.category} onChange={e=>change('category',e.target.value)}/></label><label>소분류<input value={v.subcategory} onChange={e=>change('subcategory',e.target.value)}/></label></div>
-   <label>메모<textarea rows="2" value={v.memo} onChange={e=>change('memo',e.target.value)}/></label>
+
   </div>}
   <div className="ref-heading"><strong>연결 동작 · 영상 구간</strong>{mode==='edit'&&<button type="button" onClick={()=>{change('clips',[...clips,{id:uid(),moveId:data.moves.find(m=>m.genre===v.genre)?.id||'',start:fmt(time),end:fmt(time+10)}]);setIndex(clips.length)}}><Plus size={14}/> 구간 추가</button>}</div>
   {clips.length>0&&<div className="ref-tabs">{clips.map((c,i)=><button type="button" key={c.id||i} className={i===index?'chosen':''} onClick={()=>pick(i)}>{data.moves.find(m=>m.id===c.moveId)?.name||'동작 선택'}<small>{c.start}–{c.end}</small></button>)}</div>}
