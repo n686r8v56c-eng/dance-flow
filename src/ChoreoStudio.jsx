@@ -41,6 +41,8 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
   const [musicSearch,setMusicSearch]=useState('');
   const [choreoPicker,setChoreoPicker]=useState(false);
   const [choreoSearch,setChoreoSearch]=useState('');
+  const [choreoPicker,setChoreoPicker]=useState(false);
+  const [choreoSearch,setChoreoSearch]=useState('');
   const [view,setView]=useState('time');
   const [bpm,setBpm]=useState(()=>positive(item?.countSettings?.bpm,70));
   const [half,setHalf]=useState(()=>Boolean(item?.countSettings?.half));
@@ -125,6 +127,16 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       <label className="field"><span>음악 / 곡 이름</span><input value={v.music} onChange={e=>patch('music',e.target.value)}/></label>
       {source==='youtube'&&<>
         <label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>
+        <button type="button" className="secondary compact" onClick={()=>setChoreoPicker(x=>!x)} aria-expanded={choreoPicker}>▣ 안무 북마크에서 가져오기 ({(data.choreoBookmarks||[]).length})</button>
+        {choreoPicker&&<div className="studio-music-picker">
+          <input aria-label="안무 북마크 검색" placeholder="안무 제목·분류 검색" value={choreoSearch} onChange={e=>setChoreoSearch(e.target.value)}/>
+          <div className="studio-music-results">{(data.choreoBookmarks||[]).filter(bookmark=>[bookmark.title,bookmark.genre,bookmark.category,bookmark.subcategory,bookmark.memo].join(' ').toLowerCase().includes(choreoSearch.toLowerCase())).map(bookmark=><button type="button" key={bookmark.id} className="studio-music-result" onClick={()=>{
+            setV(prev=>({...prev,name:prev.name||bookmark.title||'',url:bookmark.url||'',sourceBookmarkId:bookmark.id}));
+            setChoreoPicker(false);
+            notify('안무 북마크의 영상 링크를 가져왔어.');
+          }}><strong>{bookmark.title||'제목 없는 안무'}</strong><small>{[bookmark.genre,bookmark.category,bookmark.subcategory].filter(Boolean).join(' · ')}</small></button>)}</div>
+          {!(data.choreoBookmarks||[]).length&&<p className="studio-hint">안무 → 안무 북마크에서 영상을 먼저 저장해 줘.</p>}
+        </div>}
         <button type="button" className="secondary compact" onClick={()=>setMusicPicker(x=>!x)} aria-expanded={musicPicker}>♫ 음악 북마크에서 가져오기 ({(data.musicBookmarks||[]).length})</button>
         {musicPicker&&<div className="studio-music-picker">
           <input aria-label="음악 북마크 검색" placeholder="곡 제목·아티스트 검색" value={musicSearch} onChange={e=>setMusicSearch(e.target.value)}/>
