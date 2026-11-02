@@ -14,6 +14,7 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
  const [v,setV]=useState(()=>({id:uid(),genre:data.genres[0],title:'',category:'',subcategory:'',url:'',memo:'',clips:[],...item}));
  const [mode,setMode]=useState(item?'practice':'edit'),[index,setIndex]=useState(0),[repeat,setRepeat]=useState(true),[playing,setPlaying]=useState(false);
  const [time,setTime]=useState(0),[ready,setReady]=useState(false);
+ const [reviewStatus,setReviewStatus]=useState(''),[reviewNote,setReviewNote]=useState('');
  const [titleLoading,setTitleLoading]=useState(false),[titleNotice,setTitleNotice]=useState('');
  const titleEdited=useRef(Boolean(item?.title)),lastUrl=useRef(item?.url||'');
  const p=useRef(null),player=useRef(null);
@@ -40,7 +41,7 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
  const update=(key,value)=>change('clips',clips.map((c,i)=>i===index?{...c,[key]:value}:c));
  const seek=(seconds,play=true)=>{if(!Number.isFinite(seconds)||!player.current)return;player.current.seekTo(seconds,true);if(play)player.current.playVideo()};
  useEffect(()=>{if(!ready)return;const timer=setInterval(()=>{try{const t=player.current?.getCurrentTime?.()||0;setTime(t);if(mode==='practice'&&playing&&repeat&&clip){const a=parse(clip.start),b=parse(clip.end);if(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&t>=b-.12)player.current.seekTo(a,true)}}catch{}},200);return()=>clearInterval(timer)},[ready,mode,playing,repeat,index,v.clips]);
- const pick=i=>{setIndex(i);if(mode==='practice')seek(parse(clips[i]?.start))};
+ const pick=i=>{setIndex(i);setReviewStatus('');setReviewNote('');if(mode==='practice')seek(parse(clips[i]?.start))};
  const save=()=>{if(!v.title.trim())return notify('영상 제목을 입력해 줘.');if(!videoId)return notify('유효한 유튜브 영상 링크를 입력해 줘.');if(clips.some(c=>!data.moves.some(m=>m.id===c.moveId)||!Number.isFinite(parse(c.start))||!Number.isFinite(parse(c.end))||parse(c.end)<=parse(c.start)))return notify('구간의 연결 동작과 시작·종료 시간을 확인해 줘.');onSave(v)};
  return <div className="ref-studio">
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
@@ -64,10 +65,10 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
   </div>:<div className="ref-practice">
    <strong>{data.moves.find(m=>m.id===clip.moveId)?.name||'삭제된 동작'}</strong><small>{clip.start} – {clip.end}</small>
    <div className="ref-two"><button type="button" disabled={!ready} onClick={()=>seek(parse(clip.start))}><Play size={14}/> 구간 재생</button><button type="button" className={repeat?'selected':''} onClick={()=>setRepeat(x=>!x)}><Repeat size={14}/> 반복 {repeat?'ON':'OFF'}</button></div>
-   <label>동작 숙련도<select value={data.moves.find(m=>m.id===clip.moveId)?.status||'미습득'} onChange={e=>onUpdateMove(clip.moveId,e.target.value)}>{levels.map(x=><option key={x}>{x}</option>)}</select></label>
+   <label>동작 숙련도<select value={reviewStatus||data.moves.find(m=>m.id===clip.moveId)?.status||'미습득'} onChange={e=>setReviewStatus(e.target.value)}>{levels.map(x=><option key={x}>{x}</option>)}</select></label><label>이번 연습 평가 메모<textarea rows="3" value={reviewNote} onChange={e=>setReviewNote(e.target.value)} placeholder="어려운 점 · 잘한 점 · 다음에 연습할 부분"/></label><button type="button" className="secondary" onClick={()=>{onUpdateMove(clip.moveId,reviewStatus||data.moves.find(m=>m.id===clip.moveId)?.status||'미습득',reviewNote,v.id);setReviewNote('');setReviewStatus('')}}><Check size={14}/> 평가·메모 기록</button>
    <small>숙련도는 동작 라이브러리와 같은 값을 사용해.</small>
    {data.moves.find(m=>m.id===clip.moveId)?.lastEvaluatedAt&&<small>마지막 평가: {new Date(data.moves.find(m=>m.id===clip.moveId).lastEvaluatedAt).toLocaleDateString('ko-KR')}</small>}
-   {(data.moves.find(m=>m.id===clip.moveId)?.statusHistory||[]).length>0&&<div className="ref-evaluation-history"><strong>평가 이력</strong>{[...(data.moves.find(m=>m.id===clip.moveId).statusHistory||[])].reverse().slice(0,10).map(h=><small key={h.id}>{new Date(h.at).toLocaleDateString('ko-KR')} · {h.status} · {h.source}</small>)}</div>}
+   {(data.moves.find(m=>m.id===clip.moveId)?.statusHistory||[]).length>0&&<div className="ref-evaluation-history"><strong>평가 이력</strong>{[...(data.moves.find(m=>m.id===clip.moveId).statusHistory||[])].reverse().slice(0,10).map(h=><div key={h.id} className="skill-note-entry"><small>{new Date(h.at).toLocaleDateString('ko-KR')} · {h.status} · {h.source}</small>{h.note&&<p>{h.note}</p>}</div>)}</div>}
   </div>)}
   <button className="primary" type="button" onClick={save}><Check size={15}/> 저장</button>
   {item&&mode==='edit'&&<button type="button" className="danger-text" onClick={onDelete}><Trash2 size={14}/> 북마크 삭제</button>}
