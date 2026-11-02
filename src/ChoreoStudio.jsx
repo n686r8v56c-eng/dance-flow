@@ -39,6 +39,8 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
   const [source,setSource]=useState(item?.audioSource==='file'?'file':'youtube');
   const [musicPicker,setMusicPicker]=useState(false);
   const [musicSearch,setMusicSearch]=useState('');
+  const [choreoPicker,setChoreoPicker]=useState(false);
+  const [choreoSearch,setChoreoSearch]=useState('');
   const [view,setView]=useState('time');
   const [bpm,setBpm]=useState(()=>positive(item?.countSettings?.bpm,70));
   const [half,setHalf]=useState(()=>Boolean(item?.countSettings?.half));
@@ -135,6 +137,18 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
             notify('음악 북마크를 가져왔어.');
           }}><strong>{song.title}</strong><small>{song.artist}{song.bpm?' · '+song.bpm+' BPM':''}{song.half?' · 하프타임':''}</small></button>)}</div>
           {!(data.musicBookmarks||[]).length&&<p className="studio-hint">안무 → 음악에서 먼저 북마크를 저장해 줘.</p>}
+        </div>}
+      </>}
+      {source==='youtube'&&<>
+        <button type="button" className="secondary compact" onClick={()=>setChoreoPicker(x=>!x)} aria-expanded={choreoPicker}>▤ 안무 북마크에서 가져오기 ({(data.choreoBookmarks||[]).length})</button>
+        {choreoPicker&&<div className="studio-music-picker">
+          <input aria-label="안무 북마크 검색" placeholder="영상 제목·메모 검색" value={choreoSearch} onChange={e=>setChoreoSearch(e.target.value)}/>
+          <div className="studio-music-results">{(data.choreoBookmarks||[]).filter(b=>[b.title,b.memo,b.genre,b.category,b.subcategory].join(' ').toLowerCase().includes(choreoSearch.toLowerCase())).map(b=><button type="button" key={b.id} className="studio-music-result" onClick={()=>{
+            setV(prev=>({...prev,url:b.url||'',music:b.title||prev.music}));
+            setChoreoPicker(false);
+            notify('안무 북마크 영상 링크를 가져왔어.');
+          }}><strong>{b.title||'제목 없는 영상'}</strong><small>{[b.genre,b.category,b.subcategory].filter(Boolean).join(' · ')}</small></button>)}</div>
+          {!(data.choreoBookmarks||[]).length&&<p className="studio-hint">안무 → 안무 북마크에서 먼저 영상을 저장해 줘.</p>}
         </div>}
       </>}
     </div>}
