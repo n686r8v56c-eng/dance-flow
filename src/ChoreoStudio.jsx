@@ -6,6 +6,9 @@ import './studio.css';
 const states=['미시작','동작 암기 중','음악 연습 중','완성'];
 const toSeconds=(s)=>{const m=String(s||'').trim().match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
 const format=(s)=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+const positive=(n,fallback)=>Number.isFinite(Number(n))&&Number(n)>0?Number(n):fallback;
+const calcSeconds=(eights,bpm,half)=>Math.round(eights*8*60/(bpm/(half?2:1)));
+const countStart=(sections,i)=>1+sections.slice(0,i).reduce((n,s)=>n+positive(s.eightCounts,1),0);
 
 function YoutubePlayer({videoId,playerRef,onReady}) {
   const mount=useRef(null);
@@ -31,6 +34,10 @@ function YoutubePlayer({videoId,playerRef,onReady}) {
 export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,notify}) {
   const [v,setV]=useState(()=>({id:uid(),genre:initialGenre,name:'',music:'',url:'',segments:[],...(item||{})}));
   const [mode,setMode]=useState(item?'practice':'edit');
+  const [view,setView]=useState('time');
+  const [bpm,setBpm]=useState(()=>positive(item?.countSettings?.bpm,70));
+  const [half,setHalf]=useState(()=>Boolean(item?.countSettings?.half));
+  const [offset,setOffset]=useState(()=>Math.max(0,Number(item?.countSettings?.offset)||0));
   const [selected,setSelected]=useState(0);
   const [loop,setLoop]=useState(false);
   const [speed,setSpeed]=useState(1);
@@ -40,6 +47,18 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
   const readyChange=React.useCallback(x=>setReady(x),[]);
   const id=getYoutubeId(v.url);
   const seg=v.segments?.[selected];
+  const defaultEights=(s)=>Math.max(1,Math.round(((toSeconds(s?.end)||0)-(toSeconds(s?.start)||0))/calcSeconds(1,bpm,half))||1);
+  const eights=(s)=>positive(s?.eightCounts,defaultEights(s));
+  const syncCounts=(list,nextBpm=bpm,nextHalf=half,nextOffset=offset)=> {
+    let at=nextOffset;
+    return list.map(s=>{const count=positive(s.eightCounts,defaultEights(s));const start=format(at);at+=calcSeconds(count,nextBpm,nextHalf);return {...s,eightCounts:count,start,end:format(at)};});
+  };
+  const setCount=(index,count)=>segments(old=>syncCounts(old.map((s,i)=>i===index?{...s,eightCounts:Math.max(1,Math.min(128,Number(count)||1))}:s)));
+  const configure=(key,value)=>{
+    const b=key==='bpm'?value:bpm,h=key==='half'?value:half,o=key==='offset'?value:offset;
+    if(key==='bpm')setBpm(value);if(key==='half')setHalf(value);if(key==='offset')setOffset(value);
+    segments(old=>syncCounts(old,b,h,o));
+  };
   const patch=(key,value)=>setV(p=>({...p,[key]:value}));
   const segments=(updater)=>setV(p=>({...p,segments:updater(p.segments||[])}));
   const editSeg=(key,value)=>segments(a=>a.map((s,i)=>i===selected?{...s,[key]:value}:s));
@@ -66,11 +85,11 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       const a=toSeconds(s.start),b=toSeconds(s.end);
       if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a){notify('구간 시간은 mm:ss 형식이고 끝이 시작보다 뒤여야 해.');setMode('edit');return}
     }
-    onSave(v);
+    onSave({...v,countSettings:{bpm,half,offset}});
   }
   function addSegment(){
     const prev=v.segments.at(-1),start=prev?.end||'00:00';
-    segments(a=>[...a,{id:uid(),name:'구간 '+(a.length+1),start,end:format((toSeconds(start)||0)+30),status:'미시작',sequenceId:''}]);
+    segments(a=>[...a,{id:uid(),name:'구간 '+(a.length+1),start,end:format((toSeconds(start)||0)+30),status:'미시작',sequenceId:'',eightCounts:Math.max(1,Math.round(30/calcSeconds(1,bpm,half)))}]);
     setSelected(v.segments.length);
   }
   function moveSegment(direction){
@@ -98,8 +117,17 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       <label className="field"><span>음악 / 곡 이름</span><input value={v.music} onChange={e=>patch('music',e.target.value)}/></label>
       <label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>
     </div>}
+    {mode==='edit'&&<div className="studio-count-panel">
+      <div className="studio-modes" role="tablist" aria-label="시간과 카운트 보기"><button type="button" role="tab" aria-selected={view==='time'} className={view==='time'?'active':''} onClick={()=>setView('time')}>시간 보기</button><button type="button" role="tab" aria-selected={view==='counts'} className={view==='counts'?'active':''} onClick={()=>setView('counts')}>카운트 보기</button></div>
+      {view==='counts'&&<>
+        <label className="field"><span>음악 BPM</span><input type="number" min="20" max="240" value={bpm} onChange={e=>{const n=Number(e.target.value);if(n>=20&&n<=240)configure('bpm',n)}}/></label>
+        <div className="studio-modes"><button type="button" className={!half?'active':''} onClick={()=>configure('half',false)}>일반 카운트</button><button type="button" className={half?'active':''} onClick={()=>configure('half',true)}>하프타임</button></div>
+        <label className="field"><span>첫 카운트 시작 위치 (초)</span><input type="number" min="0" max="3600" value={offset} onChange={e=>configure('offset',Math.max(0,Math.min(3600,Number(e.target.value)||0)))}/></label>
+        <p className="studio-hint">카운트 속도 {bpm/(half?2:1)} BPM · 8카운트 약 {(480/(bpm/(half?2:1))).toFixed(1)}초. 값을 변경하면 뒤 구간 시간도 다시 계산돼.</p>
+      </>}
+    </div>}
     <div className="studio-heading"><strong>안무 구간</strong>{mode==='edit'&&<button type="button" className="secondary compact" onClick={addSegment}><Plus size={14}/> 구간</button>}</div>
-    <div className="segment-strip studio-strip">{v.segments.map((s,i)=><button type="button" key={s.id} className={i===selected?'selected':''} onClick={()=>mode==='practice'?jump(i):setSelected(i)}>{s.name}<small>{s.start}</small></button>)}</div>
+    <div className="segment-strip studio-strip">{v.segments.map((s,i)=><button type="button" key={s.id} className={i===selected?'selected':''} onClick={()=>mode==='practice'?jump(i):setSelected(i)}>{s.name}<small>{mode==='edit'&&view==='counts'?countStart(v.segments,i)+'번째 8카운트':s.start}</small></button>)}</div>
     {!v.segments.length&&<p className="studio-hint">편집 모드에서 첫 번째 구간을 추가해 줘.</p>}
     {seg&&(mode==='practice'?<div className="studio-segment studio-summary">
       <div className="studio-segment-title"><strong>{seg.name}</strong><span>{seg.start} – {seg.end}</span></div>
@@ -109,7 +137,10 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
     </div>:<div className="studio-segment">
       <div className="editor-tools"><button type="button" onClick={()=>moveSegment(-1)} aria-label="위로"><ArrowUp size={15}/></button><button type="button" onClick={()=>moveSegment(1)} aria-label="아래로"><ArrowDown size={15}/></button><button type="button" onClick={()=>{segments(a=>a.filter((_,i)=>i!==selected));setSelected(Math.max(0,selected-1))}} aria-label="구간 삭제"><Trash2 size={15}/></button></div>
       <label className="field"><span>구간 이름</span><input value={seg.name} onChange={e=>editSeg('name',e.target.value)}/></label>
-      <div className="cols"><label className="field"><span>시작 (mm:ss)</span><input value={seg.start} onChange={e=>editSeg('start',e.target.value)}/></label><label className="field"><span>끝 (mm:ss)</span><input value={seg.end} onChange={e=>editSeg('end',e.target.value)}/></label></div>
+      {view==='counts'?<>
+        <div className="studio-count-edit"><span>{countStart(v.segments,selected)} – {countStart(v.segments,selected)+eights(seg)-1}번째 8카운트</span><label>8카운트 묶음 <input type="number" min="1" max="128" value={seg.eightCounts??eights(seg)} onChange={e=>setCount(selected,e.target.value)} onFocus={e=>e.target.select()}/></label></div>
+        <p className="studio-hint">예상 시간 {seg.start} – {seg.end} · 약 {calcSeconds(eights(seg),bpm,half)}초</p>
+      </>:<div className="cols"><label className="field"><span>시작 (mm:ss)</span><input value={seg.start} onChange={e=>editSeg('start',e.target.value)}/></label><label className="field"><span>끝 (mm:ss)</span><input value={seg.end} onChange={e=>editSeg('end',e.target.value)}/></label></div>}
       <label className="field"><span>연결 시퀀스</span><select value={seg.sequenceId||''} onChange={e=>editSeg('sequenceId',e.target.value)}><option value="">없음</option>{data.sequences.filter(s=>s.genre===v.genre).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
       <label className="field"><span>진행 상황</span><select value={seg.status} onChange={e=>editSeg('status',e.target.value)}>{states.map(s=><option key={s}>{s}</option>)}</select></label>
       <button type="button" className="secondary compact" onClick={()=>jump(selected)}>이 구간 미리 재생</button>
