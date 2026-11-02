@@ -19,6 +19,7 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
  const titleEdited=useRef(Boolean(item?.title)),lastUrl=useRef(item?.url||'');
  const p=useRef(null),player=useRef(null);
  const clips=v.clips||[],clip=clips[index],videoId=getYoutubeId(v.url);
+ const activeClip=mode==='practice'&&playing?clips.find(c=>Number.isFinite(parse(c.start))&&Number.isFinite(parse(c.end))&&time>=parse(c.start)&&time<parse(c.end)):null;
  const change=(key,value)=>{if(key==='title')titleEdited.current=true;if(key==='url'&&value!==lastUrl.current){titleEdited.current=false;lastUrl.current=value}setV(x=>({...x,[key]:value}))};
  useEffect(()=>{
    const id=getYoutubeId(v.url);
@@ -45,7 +46,7 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
  const save=()=>{if(!v.title.trim())return notify('영상 제목을 입력해 줘.');if(!videoId)return notify('유효한 유튜브 영상 링크를 입력해 줘.');if(clips.some(c=>!data.moves.some(m=>m.id===c.moveId)||!Number.isFinite(parse(c.start))||!Number.isFinite(parse(c.end))||parse(c.end)<=parse(c.start)))return notify('구간의 연결 동작과 시작·종료 시간을 확인해 줘.');onSave(v)};
  return <div className="ref-studio">
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
-  <Player id={videoId} ready={target=>{player.current=target;setReady(Boolean(target))}} onState={state=>setPlaying(state===1)}/>
+  <div className="ref-video-shell"><Player id={videoId} ready={target=>{player.current=target;setReady(Boolean(target))}} onState={state=>setPlaying(state===1)}/>{activeClip?.caution?.trim()&&<div className="ref-video-caution" role="status"><strong>주의할 점</strong><span>{activeClip.caution}</span></div>}</div>
   <div className="ref-heading"><strong>연결 동작 · 영상 구간</strong>{mode==='edit'&&<button type="button" onClick={()=>{change('clips',[...clips,{id:uid(),moveId:data.moves.find(m=>m.genre===v.genre)?.id||'',start:fmt(time),end:fmt(time+10)}]);setIndex(clips.length)}}><Plus size={14}/> 구간 추가</button>}</div>
   {clips.length>0&&<div className="ref-tabs">{clips.map((c,i)=><button type="button" key={c.id||i} className={i===index?'chosen':''} onClick={()=>pick(i)}>{data.moves.find(m=>m.id===c.moveId)?.name||'동작 선택'}<small>{c.start}–{c.end}</small></button>)}</div>}
   {!clips.length&&<p className="ref-hint">편집 모드에서 영상 속 동작 구간을 추가해 줘. 한 영상에 여러 동작을 연결할 수 있어.</p>}
