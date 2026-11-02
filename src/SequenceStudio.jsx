@@ -143,7 +143,7 @@ export default function SequenceStudio({item,initialGenre,data,onSave,onDelete,n
       {v.steps.map((s,i)=><div className="seq-step" key={i}>
         <select aria-label={'동작 '+(i+1)} value={s.moveId} onChange={e=>updateStep(i,'moveId',e.target.value)}>{data.moves.filter(m=>m.genre===v.genre).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select>
         <div className="seq-step-controls">
-          <input aria-label="카운트" type="number" min="1" max="256" value={s.counts} onChange={e=>updateStep(i,'counts',Number(e.target.value))}/>
+          <input aria-label="카운트" type="number" min="1" max="256" value={s.counts ?? ''} onFocus={e=>e.target.select()} onChange={e=>updateStep(i,'counts',e.target.value===''?'':e.target.value)} onBlur={()=>updateStep(i,'counts',clamp(s.counts,1,256))}/>
           <select aria-label="방향" value={s.side||'양쪽'} onChange={e=>updateStep(i,'side',e.target.value)}>{['양쪽','왼쪽','오른쪽'].map(x=><option key={x}>{x}</option>)}</select>
           <button type="button" aria-label="위로" onClick={()=>reorder(i,-1)}><ArrowUp size={14}/></button>
           <button type="button" aria-label="아래로" onClick={()=>reorder(i,1)}><ArrowDown size={14}/></button>
