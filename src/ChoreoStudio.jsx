@@ -37,6 +37,8 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
   const [v,setV]=useState(()=>({id:uid(),genre:initialGenre,name:'',music:'',url:'',segments:[],...(item||{})}));
   const [mode,setMode]=useState(item?'practice':'edit');
   const [source,setSource]=useState(item?.audioSource==='file'?'file':'youtube');
+  const [musicPicker,setMusicPicker]=useState(false);
+  const [musicSearch,setMusicSearch]=useState('');
   const [view,setView]=useState('time');
   const [bpm,setBpm]=useState(()=>positive(item?.countSettings?.bpm,70));
   const [half,setHalf]=useState(()=>Boolean(item?.countSettings?.half));
@@ -119,7 +121,21 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       <label className="field"><span>장르</span><select value={v.genre} onChange={e=>{const genre=e.target.value;setV(p=>({...p,genre,segments:p.segments.map(s=>({...s,sequenceId:''}))}))}}>{data.genres.map(g=><option key={g}>{g}</option>)}</select></label>
       <label className="field"><span>안무 이름</span><input value={v.name} onChange={e=>patch('name',e.target.value)}/></label>
       <label className="field"><span>음악 / 곡 이름</span><input value={v.music} onChange={e=>patch('music',e.target.value)}/></label>
-      {source==='youtube'&&<label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>}
+      {source==='youtube'&&<>
+        <label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>
+        <button type="button" className="secondary compact" onClick={()=>setMusicPicker(x=>!x)} aria-expanded={musicPicker}>♫ 음악 북마크에서 가져오기 ({(data.musicBookmarks||[]).length})</button>
+        {musicPicker&&<div className="studio-music-picker">
+          <input aria-label="음악 북마크 검색" placeholder="곡 제목·아티스트 검색" value={musicSearch} onChange={e=>setMusicSearch(e.target.value)}/>
+          <div className="studio-music-results">{(data.musicBookmarks||[]).filter(song=>[song.title,song.artist,song.memo].join(' ').toLowerCase().includes(musicSearch.toLowerCase())).map(song=><button type="button" key={song.id} className="studio-music-result" onClick={()=>{
+            setV(prev=>({...prev,music:[song.artist,song.title].filter(Boolean).join(' — '),url:song.url||''}));
+            if(Number(song.bpm)>=20&&Number(song.bpm)<=240)configure('bpm',Number(song.bpm));
+            if(typeof song.half==='boolean')configure('half',song.half);
+            setMusicPicker(false);
+            notify('음악 북마크를 가져왔어.');
+          }}><strong>{song.title}</strong><small>{song.artist}{song.bpm?' · '+song.bpm+' BPM':''}{song.half?' · 하프타임':''}</small></button>)}</div>
+          {!(data.musicBookmarks||[]).length&&<p className="studio-hint">안무 → 음악에서 먼저 북마크를 저장해 줘.</p>}
+        </div>}
+      </>}
     </div>}
     {mode==='edit'&&<div className="studio-count-panel">
       <div className="studio-modes" role="tablist" aria-label="시간과 카운트 보기"><button type="button" role="tab" aria-selected={view==='time'} className={view==='time'?'active':''} onClick={()=>setView('time')}>시간 보기</button><button type="button" role="tab" aria-selected={view==='counts'} className={view==='counts'?'active':''} onClick={()=>setView('counts')}>카운트 보기</button></div>
