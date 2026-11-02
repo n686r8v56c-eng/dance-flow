@@ -3,6 +3,7 @@ import {Play,Pause,Repeat,ExternalLink,Plus,ArrowUp,ArrowDown,Trash2,Check,Music
 import {uid,getYoutubeId,safeLink} from './data';
 import './studio.css';
 import TapBpm from './TapBpm';
+import AudioCoach from './AudioCoach';
 
 const states=['미시작','동작 암기 중','음악 연습 중','완성'];
 const toSeconds=(s)=>{const m=String(s||'').trim().match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
@@ -35,6 +36,7 @@ function YoutubePlayer({videoId,playerRef,onReady}) {
 export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,notify}) {
   const [v,setV]=useState(()=>({id:uid(),genre:initialGenre,name:'',music:'',url:'',segments:[],...(item||{})}));
   const [mode,setMode]=useState(item?'practice':'edit');
+  const [source,setSource]=useState(item?.audioSource==='file'?'file':'youtube');
   const [view,setView]=useState('time');
   const [bpm,setBpm]=useState(()=>positive(item?.countSettings?.bpm,70));
   const [half,setHalf]=useState(()=>Boolean(item?.countSettings?.half));
@@ -86,7 +88,7 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       const a=toSeconds(s.start),b=toSeconds(s.end);
       if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a){notify('구간 시간은 mm:ss 형식이고 끝이 시작보다 뒤여야 해.');setMode('edit');return}
     }
-    onSave({...v,countSettings:{bpm,half,offset}});
+    onSave({...v,audioSource:source,countSettings:{bpm,half,offset}});
   }
   function addSegment(){
     const prev=v.segments.at(-1),start=prev?.end||'00:00';
@@ -103,9 +105,10 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       <button type="button" className={mode==='practice'?'active':''} onClick={()=>setMode('practice')} role="tab" aria-selected={mode==='practice'}>연습 모드</button>
       <button type="button" className={mode==='edit'?'active':''} onClick={()=>setMode('edit')} role="tab" aria-selected={mode==='edit'}>편집 모드</button>
     </div>
-    <YoutubePlayer videoId={id} playerRef={player} onReady={readyChange}/>
-    {v.url&&<a className="studio-external" href={safeLink(v.url)||'#'} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 유튜브에서 열기 (임베드 제한 영상)</a>}
-    {mode==='practice'?<div className="studio-practice">
+    <div className="studio-modes"><button type="button" className={source==='youtube'?'active':''} onClick={()=>setSource('youtube')}>유튜브</button><button type="button" className={source==='file'?'active':''} onClick={()=>setSource('file')}>내 음악 파일</button></div>
+    {source==='youtube'?<YoutubePlayer videoId={id} playerRef={player} onReady={readyChange}/>:mode==='practice'?<AudioCoach choreo={v} sequences={data.sequences} moves={data.moves} bpm={bpm} half={half} offset={offset} selected={selected} onSelect={setSelected} loop={loop} notify={notify} onTrackName={name=>patch('music',name)}/>:<p className="studio-hint">연습 모드에서 음악 파일을 선택하면 이 기기에 저장돼.</p>}
+    {source==='youtube'&&v.url&&<a className="studio-external" href={safeLink(v.url)||'#'} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/> 유튜브에서 열기 (임베드 제한 영상)</a>}
+    {mode==='practice'&&source==='youtube'?<div className="studio-practice">
       <div className="studio-controls">
         <button type="button" disabled={!ready} onClick={()=>{if(playing){player.current?.pauseVideo();setPlaying(false)}else{player.current?.playVideo();setPlaying(true)}}}>{playing?<Pause size={17}/>:<Play size={17}/>} {playing?'일시정지':'재생'}</button>
         <button type="button" className={loop?'active':''} aria-pressed={loop} onClick={()=>setLoop(x=>!x)}><Repeat size={16}/> 반복 {loop?'ON':'OFF'}</button>
@@ -116,7 +119,7 @@ export default function ChoreoStudio({item,initialGenre,data,onSave,onDelete,not
       <label className="field"><span>장르</span><select value={v.genre} onChange={e=>{const genre=e.target.value;setV(p=>({...p,genre,segments:p.segments.map(s=>({...s,sequenceId:''}))}))}}>{data.genres.map(g=><option key={g}>{g}</option>)}</select></label>
       <label className="field"><span>안무 이름</span><input value={v.name} onChange={e=>patch('name',e.target.value)}/></label>
       <label className="field"><span>음악 / 곡 이름</span><input value={v.music} onChange={e=>patch('music',e.target.value)}/></label>
-      <label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>
+      {source==='youtube'&&<label className="field"><span>유튜브 링크</span><input type="url" value={v.url} onChange={e=>patch('url',e.target.value)} placeholder="https://youtu.be/..."/></label>}
     </div>}
     {mode==='edit'&&<div className="studio-count-panel">
       <div className="studio-modes" role="tablist" aria-label="시간과 카운트 보기"><button type="button" role="tab" aria-selected={view==='time'} className={view==='time'?'active':''} onClick={()=>setView('time')}>시간 보기</button><button type="button" role="tab" aria-selected={view==='counts'} className={view==='counts'?'active':''} onClick={()=>setView('counts')}>카운트 보기</button></div>
