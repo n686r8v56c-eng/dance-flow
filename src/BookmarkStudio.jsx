@@ -14,9 +14,29 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
  const [v,setV]=useState(()=>({id:uid(),genre:data.genres[0],title:'',category:'',subcategory:'',url:'',memo:'',clips:[],...item}));
  const [mode,setMode]=useState(item?'practice':'edit'),[index,setIndex]=useState(0),[repeat,setRepeat]=useState(true),[playing,setPlaying]=useState(false);
  const [time,setTime]=useState(0),[ready,setReady]=useState(false);
+ const [titleLoading,setTitleLoading]=useState(false),[titleNotice,setTitleNotice]=useState('');
+ const titleEdited=useRef(Boolean(item?.title)),lastUrl=useRef(item?.url||'');
  const p=useRef(null),player=useRef(null);
  const clips=v.clips||[],clip=clips[index],videoId=getYoutubeId(v.url);
- const change=(key,value)=>setV(x=>({...x,[key]:value}));
+ const change=(key,value)=>{if(key==='title')titleEdited.current=true;if(key==='url'&&value!==lastUrl.current){titleEdited.current=false;lastUrl.current=value}setV(x=>({...x,[key]:value}))};
+ useEffect(()=>{
+   const id=getYoutubeId(v.url);
+   if(!id){setTitleNotice('');setTitleLoading(false);return}
+   const ctrl=new AbortController();
+   const timer=setTimeout(async()=>{
+     setTitleLoading(true);setTitleNotice('');
+     try{
+       const res=await fetch('https://noembed.com/embed?url='+encodeURIComponent('https://www.youtube.com/watch?v='+id),{signal:ctrl.signal});
+       if(!res.ok)throw Error('lookup failed');
+       const info=await res.json();
+       if(!info.title||info.error)throw Error('missing title');
+       setV(old=>old.url===v.url&&!titleEdited.current?{...old,title:info.title}:old);
+       setTitleNotice('유튜브 제목 조회 완료 · 직접 수정 가능');
+     }catch(err){if(err.name!=='AbortError')setTitleNotice('제목을 가져오지 못했어. 직접 입력해 줘.')}
+     finally{if(!ctrl.signal.aborted)setTitleLoading(false)}
+   },450);
+   return()=>{clearTimeout(timer);ctrl.abort()};
+ },[v.url]);
  const update=(key,value)=>change('clips',clips.map((c,i)=>i===index?{...c,[key]:value}:c));
  const seek=(seconds,play=true)=>{if(!Number.isFinite(seconds)||!player.current)return;player.current.seekTo(seconds,true);if(play)player.current.playVideo()};
  useEffect(()=>{if(!ready)return;const timer=setInterval(()=>{try{const t=player.current?.getCurrentTime?.()||0;setTime(t);if(mode==='practice'&&playing&&repeat&&clip){const a=parse(clip.start),b=parse(clip.end);if(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&t>=b-.12)player.current.seekTo(a,true)}}catch{}},200);return()=>clearInterval(timer)},[ready,mode,playing,repeat,index,v.clips]);
@@ -26,8 +46,9 @@ export default function BookmarkStudio({item,data,onSave,onDelete,onUpdateMove,n
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
   <Player id={videoId} ready={target=>{player.current=target;setReady(Boolean(target))}} onState={state=>setPlaying(state===1)}/>
   {mode==='edit'&&<div className="ref-fields">
-   <label>영상 제목<input value={v.title} onChange={e=>change('title',e.target.value)}/></label>
    <label>유튜브 URL<input type="url" value={v.url} onChange={e=>change('url',e.target.value)}/></label>
+   <label>영상 제목<input value={v.title} onChange={e=>change('title',e.target.value)} placeholder={titleLoading?'영상 제목 조회 중…':'영상 제목 자동 입력'}/></label>
+   {(titleLoading||titleNotice)&&<small className="ref-hint">{titleLoading?'유튜브 제목을 확인하는 중…':titleNotice}</small>}
    <label>장르<select value={v.genre} onChange={e=>change('genre',e.target.value)}>{data.genres.map(g=><option key={g}>{g}</option>)}</select></label>
    <div className="ref-two"><label>대분류<input value={v.category} onChange={e=>change('category',e.target.value)}/></label><label>소분류<input value={v.subcategory} onChange={e=>change('subcategory',e.target.value)}/></label></div>
    <label>메모<textarea rows="2" value={v.memo} onChange={e=>change('memo',e.target.value)}/></label>
