@@ -7,3 +7,25 @@
 .seq-step-controls>select{width:100%;min-width:0}
 .seq-step-controls button{min-width:0;padding:6px}
 @media(max-width:390px){.seq-step-controls{grid-template-columns:minmax(48px,60px) minmax(0,1fr) repeat(3,31px);gap:4px}}
+
+
+/* Readable phone typography; retain desktop sizes and existing layout. */
+@media (max-width: 749px) {
+    .seq-modes button {
+        font-size: 15px !important
+    }
+    .seq-stage span,.seq-stage small {
+        font-size: 14px !important
+    }
+    .seq-options label {
+        font-size: 14px !important
+    }
+    .seq-practice-item {
+        font-size: 15px !important
+    }
+    @media (min-width:750px) {
+        .seq-studio .field input,.seq-studio .field select {
+            font-size: 16px !important
+        }
+    }
+}

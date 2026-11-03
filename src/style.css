@@ -19,3 +19,105 @@ html,body,#root{max-width:100%;overflow-x:hidden}
 .linked-bookmark-filter{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 10px;margin:8px 0;background:#f1eaf9;border-radius:9px;color:#705199;font-size:11px;min-width:0}
 .linked-bookmark-filter span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .linked-bookmark-filter button{background:#fff;color:#705199;border:0;border-radius:7px;padding:7px 9px;font-size:11px;white-space:nowrap;flex:none;cursor:pointer}
+
+
+/* Readable phone typography; retain desktop sizes and existing layout. */
+@media (max-width: 749px) {
+    :root {
+        font-size: 16px !important
+    }
+    .app-header small {
+        font-size: 13px !important
+    }
+    .genre-select {
+        font-size: 15px !important
+    }
+    .metrics b span {
+        font-size: 14px !important
+    }
+    .metrics small {
+        font-size: 13px !important
+    }
+    .small-primary {
+        font-size: 15px !important
+    }
+    .secondary.compact {
+        font-size: 14px !important
+    }
+    .action-line>strong {
+        font-size: 15px !important
+    }
+    .line-main strong,.bookmark-text strong,.choreo-title strong {
+        font-size: 16px !important
+    }
+    .line-main small,.bookmark-text small,.choreo-title small {
+        font-size: 14px !important
+    }
+    .link-button,.text-button {
+        font-size: 15px !important
+    }
+    .subtabs button {
+        font-size: 15px !important
+    }
+    .small-select {
+        font-size: 14px !important
+    }
+    .filters select {
+        font-size: 15px !important
+    }
+    .bookmark-details p {
+        font-size: 15px !important
+    }
+    .progress-count {
+        font-size: 14px !important
+    }
+    .mini-segments button {
+        font-size: 14px !important
+    }
+    .mini-segments small {
+        font-size: 13px !important
+    }
+    .empty {
+        font-size: 15px !important
+    }
+    .bottom-nav button {
+        font-size: 13px !important
+    }
+    .field span {
+        font-size: 14px !important
+    }
+    @media (min-width:750px) {
+        .field input,.field select,.field textarea {
+            font-size: 16px !important
+        }
+    }
+    .section-title h3 {
+        font-size: 16px !important
+    }
+    .text-link {
+        font-size: 15px !important
+    }
+    .hint {
+        font-size: 15px !important
+    }
+    .toast {
+        font-size: 15px !important
+    }
+    @media (max-width:380px) {
+        .metrics small {
+            font-size: 13px !important
+        }
+    }
+    .dance-photo-usage {
+        font-size: 15px !important
+    }
+    .linked-bookmark-btn {
+        font-size: 14px !important
+    }
+    .linked-bookmark-filter {
+        font-size: 14px !important
+    }
+    .linked-bookmark-filter button {
+        font-size: 14px !important
+    }
+}

@@ -2,3 +2,52 @@
 .studio-count-panel{display:flex;flex-direction:column;gap:9px;min-width:0}.studio-count-edit{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#77618f}.studio-count-edit label{display:flex;align-items:center;gap:7px;font-size:11px}.studio-count-edit input{width:70px;min-width:0;font-size:16px!important}
 
 .studio-music-picker{background:#f8f5fb;padding:9px;border-radius:9px;display:flex;flex-direction:column;gap:7px;min-width:0}.studio-music-results{display:flex;flex-direction:column;max-height:220px;overflow-y:auto}.studio-music-result{border:0;border-bottom:1px solid #eae3f1;background:transparent;text-align:left;padding:8px 4px;display:flex;flex-direction:column;gap:3px;min-width:0}.studio-music-result strong{font-size:12px}.studio-music-result small{font-size:11px;color:#8d7a9c}.studio-music-picker input{font-size:16px!important}
+
+
+/* Readable phone typography; retain desktop sizes and existing layout. */
+@media (max-width: 749px) {
+    .studio-modes button {
+        font-size: 15px !important
+    }
+    .studio-video-empty {
+        font-size: 15px !important
+    }
+    .studio-external {
+        font-size: 14px !important
+    }
+    .studio-controls button {
+        font-size: 14px !important
+    }
+    .studio-controls select {
+        font-size: 15px !important
+    }
+    .studio-hint {
+        font-size: 14px !important
+    }
+    .studio-heading strong {
+        font-size: 16px !important
+    }
+    .studio-segment-title span {
+        font-size: 14px !important
+    }
+    .studio-steps {
+        font-size: 15px !important
+    }
+    @media (min-width:750px) {
+        .studio-root .field input,.studio-root .field select {
+            font-size: 16px !important
+        }
+    }
+    .studio-count-edit {
+        font-size: 15px !important
+    }
+    .studio-count-edit label {
+        font-size: 14px !important
+    }
+    .studio-music-result strong {
+        font-size: 15px !important
+    }
+    .studio-music-result small {
+        font-size: 14px !important
+    }
+}
