@@ -13,3 +13,6 @@
 .ref-zoom-bar small{font-size:10px;color:#91859e}
 
 .move-cautions{display:flex;flex-direction:column;gap:7px;padding:10px;background:#f8f5fb;border-radius:9px}.move-cautions>strong{font-size:12px}.move-caution-entry{padding:5px 0;border-bottom:1px solid #e8e0ef}.move-caution-entry:last-child{border-bottom:0}.move-caution-entry small{font-size:10px;color:#9383a2}.move-caution-entry p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5}
+
+/* Auto-measured playing time in bookmark practice mode */
+.ref-practice-timer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #e9dff1;border-radius:9px;background:#f6f1fa;min-width:0;flex-wrap:wrap}.ref-practice-timer>div{display:flex;flex-direction:column;gap:2px;min-width:0}.ref-practice-timer span{color:#7c6690;font-size:11px}.ref-practice-timer strong{font-size:20px;color:#5e4384;font-variant-numeric:tabular-nums}.ref-practice-timer small{font-size:10px;color:#9485a2}.ref-practice-timer button{border:0;border-radius:8px;padding:9px 11px;min-height:34px;background:#8664b0;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;flex:0 0 auto}.ref-practice-timer button:disabled{opacity:.45}
