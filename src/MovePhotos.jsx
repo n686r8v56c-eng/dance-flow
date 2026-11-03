@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useState,useEffect} from 'react';
 import {Upload,Trash2,Star} from 'lucide-react';
 import {supabase} from './supabase';
 import {uid} from './data';
@@ -34,3 +34,4 @@ export default function MovePhotos({images=[],moveId,onChange,notify}){
   {list.length>0&&<div className="move-photo-gallery">{list.map(photo=><div className="move-photo-card" key={photo.id}><img src={show(photo.path)} alt="동작 사진"/><div className="move-photo-actions"><button type="button" aria-label="대표 사진" className={photo.primary?'primary-photo':''} onClick={()=>onChange(list.map(x=>({...x,primary:x.id===photo.id})))}><Star size={13}/></button><button type="button" aria-label="사진 목록에서 삭제" onClick={()=>remove(photo.id)}><Trash2 size={13}/></button></div></div>)}</div>}
   <small>대표 사진은 목록에 표시돼. 새 사진은 1200px·JPEG 76%로 압축해 Storage에 저장해.</small></div>
 }
+export function DancePhotoUsage(){const [stats,setStats]=useState(null);useEffect(()=>{let active=true;(async()=>{if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user)return;let n=0,bytes=0,offset=0;while(offset<10000){const {data,error}=await supabase.storage.from(BUCKET).list(user.id,{limit:1000,offset});if(error)throw error;for(const folder of data||[]){if(!folder.id){let innerOffset=0;while(innerOffset<10000){const {data:files,error:innerError}=await supabase.storage.from(BUCKET).list(user.id+'/'+folder.name,{limit:1000,offset:innerOffset});if(innerError)throw innerError;for(const file of files||[]){if(file.id){n++;bytes+=Number(file.metadata?.size||0)}}if((files||[]).length<1000)break;innerOffset+=1000}}else{n++;bytes+=Number(folder.metadata?.size||0)}}if((data||[]).length<1000)break;offset+=1000}if(active)setStats({n,bytes})})().catch(()=>{});return()=>{active=false}},[]);return <div className="dance-photo-usage"><b>동작 사진 저장 공간</b><small>{stats?stats.n.toLocaleString()+'장 · '+(stats.bytes/1048576).toFixed(1)+' MB':'Storage 사용량 확인 중…'}</small></div>}
