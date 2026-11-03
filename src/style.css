@@ -10,3 +10,4 @@ html,body,#root{max-width:100%;overflow-x:hidden}
 .cols>*,.step-bottom>*,.seq-step-controls>*{min-width:0}
 
 @media(max-width:380px){.metrics{gap:5px}.metrics>div{padding:11px 2px}.metrics small{font-size:9px}}
+.dance-photo-usage{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f3edf9;border-radius:8px;padding:9px 11px;margin:10px 0;font-size:12px}.dance-photo-usage small{color:#7e7090}
