@@ -30,10 +30,10 @@ function Player({id,ready,onState}){
  if(window.YT?.Player)create();else{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{prev?.();create()};if(!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s)}}
  return()=>{disposed=true;ready(null);try{player?.destroy()}catch{}}},[id]);return <div className="ref-video">{id?<div ref={mount}/>:<p>유튜브 링크를 등록하면 여기서 영상이 재생돼.</p>}</div>
 }
-export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,onUpdateMove,notify}){
+export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,onUpdateMove,onPracticeRecord,notify}){
  const [v,setV]=useState(()=>({id:uid(),genre:initialGenre||data.genres[0],title:'',category:'',subcategory:'',url:'',memo:'',clips:[],...item}));
  const [mode,setMode]=useState(item?'practice':'edit'),[index,setIndex]=useState(0),[repeat,setRepeat]=useState(true),[playing,setPlaying]=useState(false);
- const [time,setTime]=useState(0),[ready,setReady]=useState(false);
+ const [time,setTime]=useState(0),[ready,setReady]=useState(false);const [practiceSeconds,setPracticeSeconds]=useState(0);
  const [zoomed,setZoomed]=useState(false);
  const [reviewStatus,setReviewStatus]=useState(''),[reviewNote,setReviewNote]=useState('');
  const [titleLoading,setTitleLoading]=useState(false),[titleNotice,setTitleNotice]=useState('');
@@ -64,6 +64,8 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
  const seek=(seconds,play=true)=>{if(!Number.isFinite(seconds)||!player.current)return;player.current.seekTo(seconds,true);if(play)player.current.playVideo()};
  useEffect(()=>{if(!ready)return;const timer=setInterval(()=>{try{const t=player.current?.getCurrentTime?.()||0;setTime(t);if(mode==='practice'&&playing&&repeat&&clip){const a=parse(clip.start),b=parse(clip.end);if(Number.isFinite(a)&&Number.isFinite(b)&&b>a&&t>=b-.12)player.current.seekTo(a,true)}}catch{}},200);return()=>clearInterval(timer)},[ready,mode,playing,repeat,index,v.clips]);
  const pick=i=>{setIndex(i);setReviewStatus('');setReviewNote('');seek(parse(clips[i]?.start),true)};
+ useEffect(()=>{if(mode!=='practice'||!playing)return;let last=performance.now();const timer=setInterval(()=>{const now=performance.now(),delta=Math.max(0,Math.min(1000,now-last));last=now;if(document.visibilityState==='visible'&&player.current?.getPlayerState?.()===1)setPracticeSeconds(old=>old+delta/1000)},250);return()=>clearInterval(timer)},[mode,playing]);
+ const finishPractice=()=>{if(practiceSeconds<1){notify('연습 시간이 1초 이상일 때 기록할 수 있어.');return}const seconds=Math.round(practiceSeconds*10)/10;onPracticeRecord({id:uid(),date:new Date().toLocaleDateString('sv-SE'),genre:v.genre,minutes:Math.max(0.01,Math.round(seconds/60*100)/100),durationSeconds:seconds,source:'영상 북마크',bookmarkId:v.id,memo:'영상 북마크 연습 · '+(v.title||'제목 없음')})};
  const save=()=>{if(!v.title.trim())return notify('영상 제목을 입력해 줘.');if(!videoId)return notify('유효한 유튜브 영상 링크를 입력해 줘.');if(clips.some(c=>!data.moves.some(m=>m.id===c.moveId)||!Number.isFinite(parse(c.start))||!Number.isFinite(parse(c.end))||parse(c.end)<=parse(c.start)))return notify('구간의 연결 동작과 시작·종료 시간을 확인해 줘.');onSave(v)};
  return <div className="ref-studio">
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
@@ -85,6 +87,7 @@ export default function BookmarkStudio({item,data,initialGenre,onSave,onDelete,o
    <small>숙련도는 동작 라이브러리와 같은 값을 사용해.</small>
    {data.moves.find(m=>m.id===clip.moveId)?.lastEvaluatedAt&&<small>마지막 평가: {new Date(data.moves.find(m=>m.id===clip.moveId).lastEvaluatedAt).toLocaleDateString('ko-KR')}</small>}
    {(data.moves.find(m=>m.id===clip.moveId)?.statusHistory||[]).length>0&&<div className="ref-evaluation-history"><strong>평가 이력</strong>{[...(data.moves.find(m=>m.id===clip.moveId).statusHistory||[])].reverse().slice(0,10).map(h=><div key={h.id} className="skill-note-entry"><small>{new Date(h.at).toLocaleDateString('ko-KR')} · {h.status} · {h.source}</small>{h.note&&<p>{h.note}</p>}</div>)}</div>}
+   {mode==='practice'&&<div className="ref-practice-timer"><div><span>영상 재생 연습 시간</span><strong>{fmt(practiceSeconds)}</strong><small>재생 중에만 누적 · 일시정지/버퍼링 제외</small></div><button type="button" onClick={finishPractice} disabled={practiceSeconds<1}><Check size={14}/> 연습 종료 · 시간 기록</button></div>}
   </div>)}
   {mode==='edit'&&<div className="ref-fields">
    <label>유튜브 URL<input type="url" value={v.url} onChange={e=>change('url',e.target.value)}/></label>
