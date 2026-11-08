@@ -5,6 +5,7 @@ import AuthGate from './AuthGate.jsx';
 import CoreStudio from './CoreStudio.jsx';
 import {ISOLATION_SEARCH_SECTIONS} from './SearchGuide.jsx';
 import {BODYROLL_STYLE_SECTIONS} from './bodyRollCatalog.js';
+import {MOVEMENT_CATALOGS} from './movementCatalogs.js';
 import {supabase,getRemote,saveRemote} from './supabase.js';
 import './style.css';
 
@@ -65,6 +66,8 @@ const CACHE='dance-flow-v2:';
 const ISOLATION_INBOX_SEED_VERSION=1;
 const ISOLATION_TECHNIQUE_SEED_VERSION=1;
 const BODYROLL_CATALOG_SEED_VERSION=1;
+const FOUR_GENRE_CATALOG_SEED_VERSION=1;
+const FOUR_GENRE_IDS=['bounce','footwork','armmovement','gaze'];
 function seedIsolationInbox(items){
  // Seed five genre tabs using the already-curated search checklist catalog.
  // Existing user-created records, linked videos and archives are left untouched.
@@ -176,8 +179,58 @@ function seedBodyRollCatalog(items,techniques){
  }
  return {items:nextItems,techniques:nextTechniques};
 }
+// One-time, non-destructive catalog migration for four movement genres.
+// Existing video links, manual rows, image references, notes and archived rows are untouched.
+function seedMovementCatalog(area,items,techniques){
+ const styleGroups=MOVEMENT_CATALOGS[area].styles;
+ const nextItems=[...items],nextTechniques=[...techniques];
+ const namesByCategory=new Map();
+ nextTechniques.forEach(row=>{
+  const category=Number(row?.category),label=String(row?.name||row?.en||'').trim().toLocaleLowerCase();
+  if(!namesByCategory.has(category))namesByCategory.set(category,new Set());
+  if(label)namesByCategory.get(category).add(label);
+ });
+ const merged=new Map();
+ styleGroups.forEach((style,genreIndex)=>{
+  const level=genreIndex+1;
+  const sameLevel=nextItems.filter(row=>row.area===area&&row.group==='massage'&&Number(row.level||1)===level);
+  const existing=new Set(sameLevel.map(row=>String(row.en||row.title||row.ko||'').trim().toLocaleLowerCase()));
+  let sort=Math.max(999,...sameLevel.map(row=>Number(row.sort)||0))+1;
+  style.items.forEach(([category,name],position)=>{
+   const key=name.trim().toLocaleLowerCase();
+   if(!key)return;
+   if(!existing.has(key)){
+    nextItems.push({
+     id:'dance:'+area+':inbox:v1:'+genreIndex+':'+position,
+     area,group:'massage',level,sort:sort++,archived:false,
+     title:name,en:name,ko:'',note:'',videos:[]
+    });
+    existing.add(key);
+   }
+   // Merge same technique within the same movement family, but preserve genre references.
+   const identity=category+':'+key;
+   if(!merged.has(identity))merged.set(identity,{category,name,genres:[]});
+   const record=merged.get(identity);
+   if(!record.genres.includes(style.genre))record.genres.push(style.genre);
+  });
+ });
+ let position=0;
+ for(const item of merged.values()){
+  const key=item.name.toLocaleLowerCase();
+  const present=namesByCategory.get(item.category)||new Set();
+  if(present.has(key))continue;
+  nextTechniques.push({
+   id:'dance:'+area+':technique:v1:'+position++,
+   name:item.name,en:'',category:item.category,
+   posture:'',muscles:'',description:'',tags:[],danceGenres:item.genres,
+   imageUrl:'',imagePath:'',imageRemoved:false,references:[],removedReferenceIds:[],notes:''
+  });
+  present.add(key);namesByCategory.set(item.category,present);
+ }
+ return {items:nextItems,techniques:nextTechniques};
+}
 const defaultStudio=()=>({
- version:2,items:[],isolationSearchChecklist:{},bodyRollSearchChecklist:{},isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
+ version:2,items:[],isolationSearchChecklist:{},bodyRollSearchChecklist:{},movementSearchChecklists:{},fourGenreCatalogSeedVersion:FOUR_GENRE_CATALOG_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
  groupNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage','영상 인박스'])),
  studios:Object.fromEntries(GENRES.map(g=>[g.id,{techniques:[],yogaTechniques:[],massageTechniques:[],routines:[],logs:[]}]))
 });
@@ -186,6 +239,7 @@ function normalizeStudio(source){
  const shouldSeed=Number(raw.isolationInboxSeedVersion||0)<ISOLATION_INBOX_SEED_VERSION;
  const shouldSeedTechniques=Number(raw.isolationTechniqueSeedVersion||0)<ISOLATION_TECHNIQUE_SEED_VERSION;
  const shouldSeedBodyRoll=Number(raw.bodyRollCatalogSeedVersion||0)<BODYROLL_CATALOG_SEED_VERSION;
+ const shouldSeedFourGenres=Number(raw.fourGenreCatalogSeedVersion||0)<FOUR_GENRE_CATALOG_SEED_VERSION;
  const studios={...initial.studios};
  for(const genre of GENRES){
   const s=raw.studios?.[genre.id]||{};
@@ -195,7 +249,13 @@ function normalizeStudio(source){
  const existingItems=shouldSeed?seedIsolationInbox(Array.isArray(raw.items)?raw.items:[]):Array.isArray(raw.items)?raw.items:[];
  const bodyRollSeed=shouldSeedBodyRoll?seedBodyRollCatalog(existingItems,studios.bodyroll.techniques):null;
  if(bodyRollSeed)studios.bodyroll.techniques=bodyRollSeed.techniques;
- const items=bodyRollSeed?bodyRollSeed.items:existingItems;
+ let items=bodyRollSeed?bodyRollSeed.items:existingItems;
+ if(shouldSeedFourGenres){
+  for(const area of FOUR_GENRE_IDS){
+   const next=seedMovementCatalog(area,items,studios[area].techniques);
+   items=next.items;studios[area].techniques=next.techniques;
+  }
+ }
  const savedNames=raw.levelNames&&typeof raw.levelNames==='object'&&!Array.isArray(raw.levelNames)?raw.levelNames:{};
  const levelNames={...initial.levelNames,...savedNames};
  // Map generic old Level 1-5 labels into the new genre labels without touching video items.
@@ -206,7 +266,7 @@ function normalizeStudio(source){
    return stored&&!/^Level\s*[1-5]$/i.test(stored)?stored:name;
   });
  }
- return {...initial,items,isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},bodyRollSearchChecklist:raw.bodyRollSearchChecklist&&typeof raw.bodyRollSearchChecklist==='object'&&!Array.isArray(raw.bodyRollSearchChecklist)?Object.fromEntries(Object.entries(raw.bodyRollSearchChecklist).filter(([id,value])=>/^g[0-4]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
+ return {...initial,items,isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,fourGenreCatalogSeedVersion:FOUR_GENRE_CATALOG_SEED_VERSION,movementSearchChecklists:Object.fromEntries(FOUR_GENRE_IDS.map(area=>[area,raw.movementSearchChecklists?.[area]&&typeof raw.movementSearchChecklists[area]==='object'&&!Array.isArray(raw.movementSearchChecklists[area])?Object.fromEntries(Object.entries(raw.movementSearchChecklists[area]).filter(([id,value])=>/^g[0-4]:t\\d+$/.test(id)&&[0,1,2].includes(value))):{}])),isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},bodyRollSearchChecklist:raw.bodyRollSearchChecklist&&typeof raw.bodyRollSearchChecklist==='object'&&!Array.isArray(raw.bodyRollSearchChecklist)?Object.fromEntries(Object.entries(raw.bodyRollSearchChecklist).filter(([id,value])=>/^g[0-4]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
 }
 async function openCache(){
  if(!('indexedDB' in window))return null;
@@ -262,7 +322,7 @@ function DanceStudio(){
      const remoteStudio=remote?.payload?.danceStudioV2;
      const incoming=normalizeStudio(remoteStudio);
      // Persist first-time catalog migration, but never overwrite a failed remote read.
-     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION && Number(remoteStudio?.isolationTechniqueSeedVersion||0)>=ISOLATION_TECHNIQUE_SEED_VERSION && Number(remoteStudio?.bodyRollCatalogSeedVersion||0)>=BODYROLL_CATALOG_SEED_VERSION;
+     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION && Number(remoteStudio?.isolationTechniqueSeedVersion||0)>=ISOLATION_TECHNIQUE_SEED_VERSION && Number(remoteStudio?.bodyRollCatalogSeedVersion||0)>=BODYROLL_CATALOG_SEED_VERSION && Number(remoteStudio?.fourGenreCatalogSeedVersion||0)>=FOUR_GENRE_CATALOG_SEED_VERSION;
      setData(incoming);setLoaded(true);setSync('동기화됨');
      writeCache(id,incoming);
     }catch(error){
