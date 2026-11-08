@@ -12,7 +12,7 @@ const LEGS_STRETCH_CATEGORIES=['종아리','발목','발바닥·발가락','정�
 const LEGS_MASSAGE_CATEGORIES=['종아리 마사지','발목 주변','발바닥 마사지','정강이 주변','허벅지','다리 전체 이완'];
 const STUDIO_STRENGTH_CATEGORIES={
  isolation:['Head','Neck','Shoulders','Chest / Rib Cage','Abdomen','Pelvis / Hips','Arms','Legs'],
- bodyroll:['기술'],
+ bodyroll:['Forward Body Roll','Backward Body Roll','Side Body Roll','Downward Body Wave','Upward Body Wave','Lateral Body Wave','Circular Body Wave','Segmented Body Wave'],
  bounce:['기술'],
  footwork:['기술'],
  armmovement:['기술'],
