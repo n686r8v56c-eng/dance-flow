@@ -62,6 +62,7 @@ const VIDEO_GENRE_TABS={
 const TABS=[{id:'inbox',name:'영상 인박스'},{id:'techniques',name:'기술 라이브러리'},{id:'timer',name:'타이머'},{id:'records',name:'기록'}];
 const CACHE='dance-flow-v2:';
 const ISOLATION_INBOX_SEED_VERSION=1;
+const ISOLATION_TECHNIQUE_SEED_VERSION=1;
 function seedIsolationInbox(items){
  // Seed five genre tabs using the already-curated search checklist catalog.
  // Existing user-created records, linked videos and archives are left untouched.
@@ -83,18 +84,64 @@ function seedIsolationInbox(items){
  }
  return next;
 }
+const ISOLATION_BODY_CATEGORIES=['Head','Neck','Shoulders','Chest / Rib Cage','Abdomen','Pelvis / Hips','Arms','Legs'];
+function seedIsolationTechniques(existingTechniques){
+ // Combine the five genre-specific lists into one unique set for each body part.
+ // Do not alter previously saved, user-entered technique objects.
+ const union=ISOLATION_BODY_CATEGORIES.map(()=>new Map());
+ ISOLATION_SEARCH_SECTIONS.forEach((section,genreIndex)=>{
+  const genre=section.name.split(' — ')[0];
+  section.rows.forEach(([body,names])=>{
+   const category=ISOLATION_BODY_CATEGORIES.indexOf(body);
+   if(category<0)return;
+   names.split(',').map(x=>x.trim()).filter(Boolean).forEach(name=>{
+    const key=name.toLocaleLowerCase();
+    if(!union[category].has(key))union[category].set(key,{name,genres:[genre],seedGenreIndex:genreIndex});
+    else {
+     const item=union[category].get(key);
+     if(!item.genres.includes(genre))item.genres.push(genre);
+    }
+   });
+  });
+ });
+ const result=[...existingTechniques];
+ const existing=ISOLATION_BODY_CATEGORIES.map(()=>new Set());
+ result.forEach(t=>{
+  const category=Number(t?.category);
+  if(category>=0&&category<existing.length){
+   const name=String(t.name||t.en||'').trim().toLocaleLowerCase();
+   if(name)existing[category].add(name);
+  }
+ });
+ union.forEach((part,category)=>{
+  for(const [key,entry] of part){
+   if(existing[category].has(key))continue;
+   result.push({
+    id:'dance:isolation:technique:v1:'+category+':'+Array.from(part.keys()).indexOf(key),
+    name:entry.name,en:'',category,posture:'',muscles:'',description:'',
+    tags:[],danceGenres:entry.genres,
+    imageUrl:'',imagePath:'',imageRemoved:false,
+    references:[],removedReferenceIds:[],notes:''
+   });
+   existing[category].add(key);
+  }
+ });
+ return result;
+}
 const defaultStudio=()=>({
- version:2,items:[],isolationSearchChecklist:{},levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
+ version:2,items:[],isolationSearchChecklist:{},isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
  groupNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage','영상 인박스'])),
  studios:Object.fromEntries(GENRES.map(g=>[g.id,{techniques:[],yogaTechniques:[],massageTechniques:[],routines:[],logs:[]}]))
 });
 function normalizeStudio(source){
  const initial=defaultStudio(),raw=source&&typeof source==='object'?source:{};
  const shouldSeed=Number(raw.isolationInboxSeedVersion||0)<ISOLATION_INBOX_SEED_VERSION;
+ const shouldSeedTechniques=Number(raw.isolationTechniqueSeedVersion||0)<ISOLATION_TECHNIQUE_SEED_VERSION;
  const studios={...initial.studios};
  for(const genre of GENRES){
   const s=raw.studios?.[genre.id]||{};
   studios[genre.id]=Object.fromEntries(['techniques','yogaTechniques','massageTechniques','routines','logs'].map(key=>[key,Array.isArray(s[key])?s[key]:[]]));
+  if(genre.id==='isolation'&&shouldSeedTechniques)studios[genre.id].techniques=seedIsolationTechniques(studios[genre.id].techniques);
  }
  const savedNames=raw.levelNames&&typeof raw.levelNames==='object'&&!Array.isArray(raw.levelNames)?raw.levelNames:{};
  const levelNames={...initial.levelNames,...savedNames};
@@ -106,7 +153,7 @@ function normalizeStudio(source){
    return stored&&!/^Level\s*[1-5]$/i.test(stored)?stored:name;
   });
  }
- return {...initial,items:shouldSeed?seedIsolationInbox(Array.isArray(raw.items)?raw.items:[]):Array.isArray(raw.items)?raw.items:[],isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
+ return {...initial,items:shouldSeed?seedIsolationInbox(Array.isArray(raw.items)?raw.items:[]):Array.isArray(raw.items)?raw.items:[],isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
 }
 async function openCache(){
  if(!('indexedDB' in window))return null;
@@ -162,7 +209,7 @@ function DanceStudio(){
      const remoteStudio=remote?.payload?.danceStudioV2;
      const incoming=normalizeStudio(remoteStudio);
      // Persist first-time catalog migration, but never overwrite a failed remote read.
-     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION;
+     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION && Number(remoteStudio?.isolationTechniqueSeedVersion||0)>=ISOLATION_TECHNIQUE_SEED_VERSION;
      setData(incoming);setLoaded(true);setSync('동기화됨');
      writeCache(id,incoming);
     }catch(error){
