@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {ChevronDown,ChevronUp,Link2,ExternalLink,Trash2,Plus,Pencil,ArrowUp,ArrowDown,RotateCcw,Download,Upload,X} from 'lucide-react';
 import {BEAUTY_SEED_DRILLS} from './beautySeedDrills.js';
 import SearchGuide from './SearchGuide.jsx';
+import SearchChecklist from './SearchChecklist.jsx';
 import './CareLibrary.css';
 
 const DEFAULT_LABELS=['마사지','이완','폼롤러','도구','SNPE'];
@@ -281,6 +282,7 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
 
  const [showRecovery,setShowRecovery]=useState(false);
  const [showSearchGuide,setShowSearchGuide]=useState(false);
+ const [showSearchChecklist,setShowSearchChecklist]=useState(false);
  const [showImport,setShowImport]=useState(false);
  const [levelRename,setLevelRename]=useState(null);
  const [renameText,setRenameText]=useState('');
@@ -454,7 +456,8 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
  const totalSavedVideos=recovered.reduce((sum,x)=>sum+linksFor(x).length,0);
  return <div className="stretching-page">
   {showSearchGuide&&danceInbox&&<SearchGuide onClose={()=>setShowSearchGuide(false)}/>}
-  <div className="care-page-title"><h1>{data.groupNames?.[groupKey(area,group)]||({massage:'마사지',stretch:'스트레치',bodyweight:'맨몸근력',machine:'기계근력'})[group]}</h1>{danceInbox&&<button type="button" className="dance-guide-open" onClick={()=>setShowSearchGuide(true)}>검색가이드</button>}</div>
+  {showSearchChecklist&&danceInbox&&<SearchChecklist statuses={data.isolationSearchChecklist||{}} onSetStatus={(id,status)=>update(d=>{d.isolationSearchChecklist={...(d.isolationSearchChecklist||{}),[id]:status}})} onClose={()=>setShowSearchChecklist(false)}/>}
+  <div className="care-page-title"><h1>{data.groupNames?.[groupKey(area,group)]||({massage:'마사지',stretch:'스트레치',bodyweight:'맨몸근력',machine:'기계근력'})[group]}</h1>{danceInbox&&<div className="dance-inbox-actions"><button type="button" className="dance-guide-open" onClick={()=>setShowSearchGuide(true)}>검색가이드</button><button type="button" className="dance-check-open" onClick={()=>setShowSearchChecklist(true)}>체크리스트</button></div>}</div>
   <div className={'stretching-levels'+(danceInbox?' dance-genre-levels':'')} role="tablist" aria-label={danceInbox?'댄스 장르':'바디케어 단계'}>
    {labels.map((name,i)=><button key={i} type="button" role="tab" aria-selected={level===i+1} className={level===i+1?'active':''}
      onPointerDown={()=>startPress(i+1)} onPointerUp={stopPress} onPointerCancel={stopPress} onPointerLeave={stopPress}
