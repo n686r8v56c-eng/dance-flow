@@ -7,7 +7,7 @@ const GLUTES_YOGA_CATEGORIES=Object.freeze(['의자자세 변형','피라미드 
 const BACK_YOGA_CATEGORIES=Object.freeze(['L Sit 변형','One Leg Lotus 변형','Supine','Prone','Legacy Techniques · Review']);
 const BACK_MASSAGE_CATEGORIES=Object.freeze(['상부 승모근·목 아래','견갑골 주변','광배근·등 옆','척추기립근 주변']);
 const ARMS_YOGA_CATEGORIES=Object.freeze(['Kneeling','Prone','Legacy Techniques · Review']);
-const STUDIO_NAMES={isolation:"Isolation · 아이솔레이션",bodyroll:"Body Roll / Wave · 바디롤·웨이브",bounce:"Bounce / Groove · 바운스·그루브",footwork:"Footwork · 풋워크",arms:"Arm Movement · 팔동작",gaze:"Gaze / Pose · 시선·포즈"};
+const STUDIO_NAMES={isolation:"Isolation · 아이솔레이션",bodyroll:"Body Roll / Wave · 바디롤·웨이브",bounce:"Bounce / Groove · 바운스·그루브",footwork:"Footwork · 풋워크",armmovement:"Arm Movement · 팔동작",gaze:"Gaze / Pose · 시선·포즈"};
 const LEGS_STRETCH_CATEGORIES=['종아리','발목','발바닥·발가락','정강이·앞종아리','허벅지','다리 올리기·펌핑'];
 const LEGS_MASSAGE_CATEGORIES=['종아리 마사지','발목 주변','발바닥 마사지','정강이 주변','허벅지','다리 전체 이완'];
 const STUDIO_STRENGTH_CATEGORIES={
@@ -15,7 +15,7 @@ const STUDIO_STRENGTH_CATEGORIES={
  bodyroll:['기술'],
  bounce:['기술'],
  footwork:['기술'],
- arms:['기술'],
+ armmovement:['기술'],
  gaze:['기술'],
  legs:LEGS_STRETCH_CATEGORIES,
  glutes:['Quadruped','Supine','Prone','Side-Lying','Half Kneeling','Tall Kneeling','Seated','Bench-Supported','Bilateral Standing','Single-Leg Standing','Split Stance','Kickstand / B-Stance','Step up','Legacy Techniques · Review'],
