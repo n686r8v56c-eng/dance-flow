@@ -2,7 +2,7 @@ import React,{useEffect,useRef} from 'react';
 import {X} from 'lucide-react';
 import './SearchGuide.css';
 
-const sections=[
+export const ISOLATION_SEARCH_SECTIONS=[
  {name:'Belly Dance — 벨리댄스',intro:'아이솔레이션의 정밀도, 특히 가슴·복부·골반 조절에 강한 장르야.',rows:[
  ['Head','Head Slide, Head Circle'],['Neck','Neck Tilt, Head-Neck Isolation'],['Shoulders','Shoulder Shimmy, Shoulder Roll, Shoulder Lift'],
  ['Chest / Rib Cage','Chest Slide, Chest Lift & Drop, Chest Circle'],['Abdomen','Belly Roll, Abdominal Flutter, Upper & Lower Ab Isolation'],
@@ -60,7 +60,7 @@ export default function SearchGuide({onClose}){
    <div className="dance-guide-body">
     <p id="dance-guide-intro">ㅋㅋㅋㅋㅋ 💜 이거 완전 재미있다!!! 이제 <strong>Isolation의 신체 대분류 8개 × 댄스 장르 5개</strong>로 기술 이름을 찾아보자.</p>
     <p>네가 유튜브에서 직접 검색할 수 있도록 영어 이름으로 정리했어. <strong>실제로 많이 쓰이는 동작명</strong>을 우선 넣고, 고유 명칭이 없는 경우에는 검색하기 쉬운 설명식 이름을 사용했어.</p>
-    {sections.map((section,i)=><section key={section.name} className="dance-guide-section">
+    {ISOLATION_SEARCH_SECTIONS.map((section,i)=><section key={section.name} className="dance-guide-section">
      <h3>{i+1}. {section.name}</h3><p>{section.intro}</p>
      <Table head={['대분류','관련 기술']} rows={section.rows}/>
      {section.note&&<p>{section.note}</p>}
