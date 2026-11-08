@@ -14,10 +14,54 @@ const GENRES=[
   {id:'armmovement',name:'Arm Movement · 팔동작'},
   {id:'gaze',name:'Gaze / Pose · 시선·포즈'}
 ];
+const VIDEO_GENRE_TABS={
+  "isolation": [
+    "벨리댄스",
+    "팝핑",
+    "애니",
+    "힙합",
+    "재즈펑크"
+  ],
+  "bodyroll": [
+    "재즈펑크",
+    "힐댄스",
+    "벨리댄스",
+    "팝핑",
+    "바차타"
+  ],
+  "bounce": [
+    "힙합",
+    "하우스",
+    "댄스홀",
+    "아프로",
+    "셔플"
+  ],
+  "footwork": [
+    "하우스",
+    "셔플",
+    "브레이킹",
+    "힙합",
+    "락킹"
+  ],
+  "armmovement": [
+    "왁킹",
+    "보깅",
+    "터팅",
+    "락킹",
+    "재즈펑크"
+  ],
+  "gaze": [
+    "보깅",
+    "재즈펑크",
+    "힐댄스",
+    "왁킹",
+    "케이팝"
+  ]
+};
 const TABS=[{id:'inbox',name:'영상 인박스'},{id:'techniques',name:'기술 라이브러리'},{id:'timer',name:'타이머'},{id:'records',name:'기록'}];
 const CACHE='dance-flow-v2:';
 const defaultStudio=()=>({
- version:2,items:[],levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',['Level 1','Level 2','Level 3','Level 4','Level 5']])),
+ version:2,items:[],levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
  groupNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage','영상 인박스'])),
  studios:Object.fromEntries(GENRES.map(g=>[g.id,{techniques:[],yogaTechniques:[],massageTechniques:[],routines:[],logs:[]}]))
 });
@@ -28,7 +72,17 @@ function normalizeStudio(source){
   const s=raw.studios?.[genre.id]||{};
   studios[genre.id]=Object.fromEntries(['techniques','yogaTechniques','massageTechniques','routines','logs'].map(key=>[key,Array.isArray(s[key])?s[key]:[]]));
  }
- return {...initial,items:Array.isArray(raw.items)?raw.items:[],levelNames:{...initial.levelNames,...(raw.levelNames||{})},groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
+ const savedNames=raw.levelNames&&typeof raw.levelNames==='object'&&!Array.isArray(raw.levelNames)?raw.levelNames:{};
+ const levelNames={...initial.levelNames,...savedNames};
+ // Map generic old Level 1-5 labels into the new genre labels without touching video items.
+ for(const genre of GENRES){
+  const key=genre.id+':massage',old=Array.isArray(savedNames[key])?savedNames[key]:[];
+  levelNames[key]=VIDEO_GENRE_TABS[genre.id].map((name,index)=>{
+   const stored=typeof old[index]==='string'?old[index].trim():'';
+   return stored&&!/^Level\s*[1-5]$/i.test(stored)?stored:name;
+  });
+ }
+ return {...initial,items:Array.isArray(raw.items)?raw.items:[],levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
 }
 async function openCache(){
  if(!('indexedDB' in window))return null;

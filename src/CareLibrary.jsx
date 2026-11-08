@@ -4,6 +4,7 @@ import {BEAUTY_SEED_DRILLS} from './beautySeedDrills.js';
 import './CareLibrary.css';
 
 const DEFAULT_LABELS=['마사지','이완','폼롤러','도구','SNPE'];
+const DANCE_GENRE_IDS=new Set(['isolation','bodyroll','bounce','footwork','armmovement','gaze']);
 const VOICE_LEVEL_NAMES=['기초','음정','음색','기교','표현'];
 // Source: Voice Flow drill catalog, exported 2026-11-06. Stable IDs prevent duplicate seeding.
 const VOICE_SEED_DRILLS=[{"level":1,"sort":0,"en":"Appoggio","ko":"아포지오 · 호흡 지지"},{"level":1,"sort":1,"en":"Breath–Voice Coordination","ko":"호흡·성대 협응"},{"level":1,"sort":2,"en":"F–V Transition","ko":"F→V 전환"},{"level":1,"sort":3,"en":"S–Z Transition","ko":"S→Z 전환"},{"level":1,"sort":4,"en":"Lip Trill","ko":"립트릴"},{"level":1,"sort":5,"en":"Tongue Trill","ko":"텅트릴"},{"level":1,"sort":6,"en":"Straw Phonation","ko":"빨대 발성"},{"level":1,"sort":7,"en":"Water Resistance Phonation","ko":"물저항 발성"},{"level":1,"sort":8,"en":"Gentle Humming","ko":"허밍"},{"level":1,"sort":9,"en":"Easy Onset","ko":"부드러운 발성 시작"},{"level":1,"sort":10,"en":"Gentle Offset","ko":"부드러운 발성 종료"},{"level":1,"sort":11,"en":"Humming to Vowel","ko":"음→아 연결"},{"level":2,"sort":0,"en":"Single Note Matching","ko":"피아노 단음 따라 하기"},{"level":2,"sort":1,"en":"Pitch Accuracy","ko":"음정 정확도"},{"level":2,"sort":2,"en":"Semitone Steps","ko":"반음씩 상행·하행"},{"level":2,"sort":3,"en":"Interval Jumps","ko":"3도·5도·옥타브 도약"},{"level":2,"sort":4,"en":"Pitch Glide","ko":"피치 글라이드"},{"level":2,"sort":5,"en":"Siren","ko":"사이렌"},{"level":2,"sort":6,"en":"Range Expansion","ko":"음역 확장"},{"level":3,"sort":0,"en":"Chest Register","ko":"흉성"},{"level":3,"sort":1,"en":"Head Register","ko":"두성"},{"level":3,"sort":2,"en":"Mix Coordination","ko":"믹스 보이스"},{"level":3,"sort":3,"en":"Register Transition","ko":"성구 전환"},{"level":3,"sort":4,"en":"Vowel Resonance","ko":"모음·공명 조절"},{"level":3,"sort":5,"en":"Bright–Dark Tone","ko":"밝고 어두운 음색"},{"level":3,"sort":6,"en":"Light–Full Tone","ko":"가볍고 묵직한 음색"},{"level":3,"sort":7,"en":"M–N–NG Resonance","ko":"비음·공명 탐색"},{"level":4,"sort":0,"en":"Crescendo–Decrescendo","ko":"크레셴도·디크레셴도"},{"level":4,"sort":1,"en":"Messa di Voce","ko":"메사 디 보체"},{"level":4,"sort":2,"en":"Scale Agility","ko":"스케일 민첩성"},{"level":4,"sort":3,"en":"Arpeggio","ko":"아르페지오"},{"level":4,"sort":4,"en":"Melisma","ko":"멜리스마"},{"level":4,"sort":5,"en":"Legato","ko":"레가토"},{"level":4,"sort":6,"en":"Staccato","ko":"스타카토"},{"level":4,"sort":7,"en":"Vibrato","ko":"비브라토 조절"},{"level":4,"sort":8,"en":"Dynamic Control","ko":"음량 조절"},{"level":5,"sort":0,"en":"Sustained Tone","ko":"지속음·발성 안정성"},{"level":5,"sort":1,"en":"Long Phrase","ko":"긴 프레이즈·호흡 배분"},{"level":5,"sort":2,"en":"Clear Diction","ko":"자음·모음 딕션"},{"level":5,"sort":3,"en":"Semantic Pausing","ko":"의미 단위 쉼"},{"level":5,"sort":4,"en":"Musical Phrasing","ko":"프레이징"},{"level":5,"sort":5,"en":"Stress & Intonation","ko":"강세·억양"},{"level":5,"sort":6,"en":"Emotional Delivery","ko":"감정 표현"},{"level":5,"sort":7,"en":"Expressive Reading","ko":"표현 낭독"},{"level":5,"sort":8,"en":"Voice to Speech","ko":"발성에서 말하기 연결"}];
@@ -282,6 +283,7 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
  const [levelRename,setLevelRename]=useState(null);
  const [renameText,setRenameText]=useState('');
  const timer=useRef(null),wasLongPress=useRef(false);
+ const danceInbox=DANCE_GENRE_IDS.has(area)&&group==='massage';
  const labels=Array.from({length:5},(_,i)=>data.levelNames?.[groupKey(area,group)]?.[i]||(area==='face'&&group==='stretch'?VOICE_LEVEL_NAMES[i]:DEFAULT_LABELS[i]));
  useEffect(()=>{setLevel(1);setOpened(null);setEditingMode(false);setEditor(null);setShowDeleted(false);setShowRecovery(false)},[area,group]);
  const alertUser=text=>{setMessage(text)};
@@ -450,14 +452,14 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
  const totalSavedVideos=recovered.reduce((sum,x)=>sum+linksFor(x).length,0);
  return <div className="stretching-page">
   <div className="care-page-title"><h1>{data.groupNames?.[groupKey(area,group)]||({massage:'마사지',stretch:'스트레치',bodyweight:'맨몸근력',machine:'기계근력'})[group]}</h1></div>
-  <div className="stretching-levels" role="tablist" aria-label="바디케어 단계">
+  <div className={'stretching-levels'+(danceInbox?' dance-genre-levels':'')} role="tablist" aria-label={danceInbox?'댄스 장르':'바디케어 단계'}>
    {labels.map((name,i)=><button key={i} type="button" role="tab" aria-selected={level===i+1} className={level===i+1?'active':''}
      onPointerDown={()=>startPress(i+1)} onPointerUp={stopPress} onPointerCancel={stopPress} onPointerLeave={stopPress}
      onContextMenu={e=>{e.preventDefault();stopPress();wasLongPress.current=true;setLevelRename(i+1);setRenameText(name)}}
-     onClick={()=>chooseLevel(i+1)}><span>Lv.{i+1}</span><strong>{name}</strong></button>)}
+     onClick={()=>chooseLevel(i+1)}>{!danceInbox&&<span>Lv.{i+1}</span>}<strong>{name}</strong></button>)}
   </div>
 
-  <div className="stretching-list-heading"><strong>LEVEL {level} · {labels[level-1]}</strong>
+  <div className="stretching-list-heading"><strong>{danceInbox?labels[level-1]:`LEVEL ${level} · ${labels[level-1]}`}</strong>
    <div className="stretching-header-actions"><span>{visible.length} Drill</span>
     <button type="button" disabled={readOnly} onClick={openNew} aria-label="동작 추가" title="동작 추가"><Plus size={17}/></button>
     <button type="button" disabled={readOnly} className={editingMode?'active':''} onClick={()=>setEditingMode(x=>!x)}><Pencil size={15}/> 편집</button>
@@ -517,15 +519,15 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
     <div className="stretching-modal-title"><strong>{editor.mode==='add'?'동작 추가':'동작 수정'}</strong><button type="button" aria-label="닫기" onClick={()=>setEditor(null)}><X size={19}/></button></div>
     <label>영문 이름<input value={draft.en} onChange={e=>setDraft(d=>({...d,en:e.target.value}))} maxLength={120} placeholder="예: Body Scan" autoFocus/></label>
     <label>한글 이름<input value={draft.ko} onChange={e=>setDraft(d=>({...d,ko:e.target.value}))} maxLength={120} placeholder="예: 신체 긴장 관찰"/></label>
-     <label>분류<select value={draft.level} onChange={e=>setDraft(d=>({...d,level:Number(e.target.value)}))}>{labels.map((label,i)=><option key={i} value={i+1}>Lv.{i+1} · {label}</option>)}</select></label>
+     <label>분류<select value={draft.level} onChange={e=>setDraft(d=>({...d,level:Number(e.target.value)}))}>{labels.map((label,i)=><option key={i} value={i+1}>{danceInbox?label:`Lv.${i+1} · ${label}`}</option>)}</select></label>
     <button className="stretching-submit" type="submit">저장</button>
    </form>
   </div>}
   {!readOnly&&levelRename!==null&&<div className="stretching-modal-backdrop" onClick={()=>setLevelRename(null)}>
    <form className="stretching-modal" role="dialog" aria-modal="true" onClick={e=>e.stopPropagation()} onSubmit={saveRename}>
-    <div className="stretching-modal-title"><strong>Lv.{levelRename} 이름 수정</strong><button type="button" onClick={()=>setLevelRename(null)}><X size={19}/></button></div>
-    <label>단계 이름<input autoFocus maxLength={20} value={renameText} onChange={e=>setRenameText(e.target.value)}/></label>
-    <p>Lv.1~5 단계는 고정이고 이름만 변경할 수 있어.</p><button type="submit" className="stretching-submit">저장</button>
+    <div className="stretching-modal-title"><strong>{danceInbox?'댄스 장르 이름 수정':`Lv.${levelRename} 이름 수정`}</strong><button type="button" onClick={()=>setLevelRename(null)}><X size={19}/></button></div>
+    <label>{danceInbox?'장르 이름':'단계 이름'}<input autoFocus maxLength={20} value={renameText} onChange={e=>setRenameText(e.target.value)}/></label>
+    <p>{danceInbox?'다섯 개의 장르 탭은 고정이고 이름만 변경할 수 있어.':'Lv.1~5 단계는 고정이고 이름만 변경할 수 있어.'}</p><button type="submit" className="stretching-submit">저장</button>
    </form>
   </div>}
  </div>;

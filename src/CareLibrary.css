@@ -301,3 +301,9 @@ body:has(.care-content){background:#faf9fc}
  overflow:hidden;
  text-overflow:ellipsis;
 }
+
+/* Dance Flow video inbox: fixed five-column dance genre tabs. */
+.dance-genre-levels{grid-template-columns:repeat(5,minmax(0,1fr))}
+.dance-genre-levels button{min-height:56px;padding:8px 3px}
+.dance-genre-levels button strong{font-size:clamp(11px,2.8vw,14px);line-height:1.3;overflow-wrap:break-word;word-break:keep-all;text-align:center}
+@media(min-width:640px){.dance-genre-levels button strong{font-size:14px}}
