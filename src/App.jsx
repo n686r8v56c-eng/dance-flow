@@ -3,6 +3,7 @@ import React,{useEffect,useRef,useState,useCallback} from 'react';
 import {Download,Upload,LogOut,RefreshCw,ChevronDown} from 'lucide-react';
 import AuthGate from './AuthGate.jsx';
 import CoreStudio from './CoreStudio.jsx';
+import {ISOLATION_SEARCH_SECTIONS} from './SearchGuide.jsx';
 import {supabase,getRemote,saveRemote} from './supabase.js';
 import './style.css';
 
@@ -60,6 +61,28 @@ const VIDEO_GENRE_TABS={
 };
 const TABS=[{id:'inbox',name:'영상 인박스'},{id:'techniques',name:'기술 라이브러리'},{id:'timer',name:'타이머'},{id:'records',name:'기록'}];
 const CACHE='dance-flow-v2:';
+const ISOLATION_INBOX_SEED_VERSION=1;
+function seedIsolationInbox(items){
+ // Seed five genre tabs using the already-curated search checklist catalog.
+ // Existing user-created records, linked videos and archives are left untouched.
+ const next=[...items];
+ for(const [slot,section] of ISOLATION_SEARCH_SECTIONS.entries()){
+  const matching=next.filter(item=>item.area==='isolation'&&item.group==='massage'&&Number(item.level||1)===slot+1);
+  const existing=new Set(matching.map(item=>String(item.en||item.title||item.ko||'').trim().toLocaleLowerCase()));
+  let sort=Math.max(999,...matching.map(item=>Number(item.sort)||0))+1;
+  for(const [body,names] of section.rows){
+   for(const [position,original] of names.split(',').entries()){
+    const name=original.trim(),key=name.toLocaleLowerCase();
+    if(!name||existing.has(key))continue;
+    next.push({id:'dance:isolation:inbox:v1:'+slot+':'+body.replace(/[^a-z]/gi,'').toLowerCase()+':'+position,
+     area:'isolation',group:'massage',level:slot+1,sort:sort++,archived:false,
+     title:name,en:name,ko:'',note:'',videos:[]});
+    existing.add(key);
+   }
+  }
+ }
+ return next;
+}
 const defaultStudio=()=>({
  version:2,items:[],isolationSearchChecklist:{},levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
  groupNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage','영상 인박스'])),
@@ -67,6 +90,7 @@ const defaultStudio=()=>({
 });
 function normalizeStudio(source){
  const initial=defaultStudio(),raw=source&&typeof source==='object'?source:{};
+ const shouldSeed=Number(raw.isolationInboxSeedVersion||0)<ISOLATION_INBOX_SEED_VERSION;
  const studios={...initial.studios};
  for(const genre of GENRES){
   const s=raw.studios?.[genre.id]||{};
@@ -82,7 +106,7 @@ function normalizeStudio(source){
    return stored&&!/^Level\s*[1-5]$/i.test(stored)?stored:name;
   });
  }
- return {...initial,items:Array.isArray(raw.items)?raw.items:[],isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
+ return {...initial,items:shouldSeed?seedIsolationInbox(Array.isArray(raw.items)?raw.items:[]):Array.isArray(raw.items)?raw.items:[],isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
 }
 async function openCache(){
  if(!('indexedDB' in window))return null;
@@ -135,8 +159,11 @@ function DanceStudio(){
      const remote=await getRemote(id);
      if(!active)return;
      baseline.current=remote?.payload??null;
-     const incoming=normalizeStudio(remote?.payload?.danceStudioV2);
-     skipFirst.current=true;setData(incoming);setLoaded(true);setSync('동기화됨');
+     const remoteStudio=remote?.payload?.danceStudioV2;
+     const incoming=normalizeStudio(remoteStudio);
+     // Persist first-time catalog migration, but never overwrite a failed remote read.
+     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION;
+     setData(incoming);setLoaded(true);setSync('동기화됨');
      writeCache(id,incoming);
     }catch(error){
      const cached=await readCache(id);
