@@ -202,14 +202,15 @@ function DanceStudio(){
  if(!loaded)return <div className="loading"><p role="status">{notice||'댄스 스튜디오를 불러오는 중…'}</p></div>;
  return <div className="app">
   <header className="header">
-   <div className="brand"><span className="symbol">✦</span><div><strong>DANCE FLOW</strong><small>{sync}</small></div></div>
+   <label className="area-switch dance-genre-switch"><span className="sr-only">장르 선택</span><select aria-label="장르 선택" value={genre} onChange={e=>setGenre(e.target.value)}>{GENRES.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><ChevronDown size={15}/></label>
+   <span className="sr-only" role="status">{sync}</span>
    <div className="header-right">
     <button type="button" className="icon-btn" title="JSON 백업" aria-label="JSON 백업" onClick={()=>downloadJson({format:'dance-flow-studio-v2',exportedAt:new Date().toISOString(),data})}><Download size={17}/></button>
     <button type="button" className="icon-btn" title="JSON 가져오기" aria-label="JSON 가져오기" onClick={()=>importInput.current?.click()}><Upload size={17}/></button>
     <input ref={importInput} type="file" accept=".json,application/json" className="sr-only" onChange={e=>{const file=e.target.files?.[0];e.target.value='';importJson(file)}}/>
     <button type="button" className="icon-btn" title="클라우드 저장 재시도" aria-label="클라우드 저장 재시도" onClick={()=>blocked.current?setNotice('저장 보호 중이야. JSON 백업 후 새로고침해 줘.'):flush()}><RefreshCw size={17}/></button>
     <button type="button" className="icon-btn" title="로그아웃" aria-label="로그아웃" onClick={()=>supabase.auth.signOut()}><LogOut size={17}/></button>
-    <label className="area-switch" style={{maxWidth:190,flexShrink:1}}><span className="sr-only">장르 선택</span><select aria-label="장르 선택" value={genre} onChange={e=>setGenre(e.target.value)} style={{textOverflow:'ellipsis'}}>{GENRES.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><ChevronDown size={15}/></label>
+
    </div>
   </header>
   {notice&&<p role="status" style={{maxWidth:900,margin:'10px auto',padding:'0 16px',fontSize:13,color:'#7c5399',lineHeight:1.5}}>{notice}</p>}
