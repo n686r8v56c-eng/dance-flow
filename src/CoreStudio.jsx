@@ -256,8 +256,8 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
   }catch(error){setImageError('업로드 실패: '+(error?.message||'Storage 설정을 확인해 줘.'))}
   finally{setUploadingImage(false)}
  };
- return <section style={{padding:'16px'}}>
-  <h2>기술 라이브러리</h2>
+ return <section className="dance-studio-panel">
+  <h2 className="dance-studio-title">기술 라이브러리</h2>
   <div role="tablist" aria-label={title+" 운동 유형"} style={{display:'grid',gridTemplateColumns:'repeat('+modeLabels.length+',minmax(0,1fr))',gap:8,marginBottom:15}}>
    {[{id:'strength',label:modeLabels[0]},...(modeLabels[1]?[{id:'yoga',label:modeLabels[1]}]:[]),...(modeLabels[2]?[{id:'massage',label:modeLabels[2]}]:[])].map(t=><button key={t.id} type="button" role="tab" aria-selected={mode===t.id} onClick={()=>switchMode(t.id)} style={{...btn,fontSize:15,fontWeight:700,padding:'12px 8px',background:mode===t.id?'#e9ddf7':'transparent',borderColor:mode===t.id?'#ac8fcd':'#e5ddea',color:mode===t.id?'#65458c':'inherit'}}>{t.label}</button>)}
   </div>
@@ -497,9 +497,8 @@ function CoreTimer({data,onUpdate,database,userId,title='코어',strengthCategor
   lastTick.current=Date.now();endAt.current=lastTick.current+(done?steps[0].seconds:remaining)*1000;setPlaying(true);playingRef.current=true};
  const skip=()=>{pause();const n=index+1;if(n<steps.length){setIndex(n);setRemaining(steps[n].seconds)}else{setDone(true);setRemaining(0)}};
  const save=()=>{if(!steps.length||!name.trim())return;const id=routineId||uid();onUpdate(d=>{d.coreRoutines=d.coreRoutines||[];const value={id,name:name.trim(),steps:steps.map(x=>({...x}))};const at=d.coreRoutines.findIndex(x=>x.id===id);if(at<0)d.coreRoutines.push(value);else d.coreRoutines[at]=value});setRoutineId(id)};
- return <section style={{padding:'16px'}}>
-  <h2>타이머</h2>
-  <p style={{fontSize:13,opacity:.7}}>기술 라이브러리에서 동작을 선택하고 나만의 시퀀스를 만들어.</p>
+ return <section className="dance-studio-panel">
+  <h2 className="dance-studio-title">타이머</h2>
   <select aria-label="저장된 시퀀스" value={routineId} onChange={e=>selectRoutine(e.target.value)} style={{width:'100%',padding:12,borderRadius:10,marginBottom:12}}><option value="">저장된 시퀀스 선택</option>{routines.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select>
   <div className="routine-root routine-face" style={{padding:'22px 10px 20px',borderRadius:18,marginBottom:12,background:'#fff'}}>
    <div style={{width:'min(100%,320px)',aspectRatio:'1',position:'relative',margin:'2px auto 10px'}}>
@@ -611,8 +610,8 @@ function CoreTimer({data,onUpdate,database,userId,title='코어',strengthCategor
 function CoreRecords({logs=[],title='코어'}){
  const today=day(),current=logs.filter(x=>x.date===today).reduce((n,x)=>n+x.seconds,0);
  const dates=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')});
- return <section style={{padding:16}}>
-  <h2>기록</h2>
+ return <section className="dance-studio-panel">
+  <h2 className="dance-studio-title">기록</h2>
   <div style={panel}><span>오늘의 연습</span><h2 style={{margin:'8px 0'}}>{fmt(current)}</h2></div>
   <h3>최근 7일</h3>
   {dates.map(date=><div key={date} style={{...panel,display:'flex',justifyContent:'space-between'}}><span>{date}</span><strong>{fmt(logs.filter(x=>x.date===date).reduce((n,x)=>n+x.seconds,0))}</strong></div>)}
