@@ -11,7 +11,7 @@ const STUDIO_NAMES={isolation:"Isolation · 아이솔레이션",bodyroll:"Body R
 const LEGS_STRETCH_CATEGORIES=['종아리','발목','발바닥·발가락','정강이·앞종아리','허벅지','다리 올리기·펌핑'];
 const LEGS_MASSAGE_CATEGORIES=['종아리 마사지','발목 주변','발바닥 마사지','정강이 주변','허벅지','다리 전체 이완'];
 const STUDIO_STRENGTH_CATEGORIES={
- isolation:['기술'],
+ isolation:['Head','Neck','Shoulders','Chest / Rib Cage','Abdomen','Pelvis / Hips','Arms','Legs'],
  bodyroll:['기술'],
  bounce:['기술'],
  footwork:['기술'],
@@ -162,6 +162,7 @@ const movementPatternMatches=(technique,label)=>{
  };
  return (hints[label]||[]).some(h=>text.includes(h));
 };
+const ISOLATION_MOVEMENT_PATTERNS=['Slide / Shift','Tilt','Rotation','Circle','Contract / Release','Segment / Sequence'];
 const THIGH_POSTURE_TAGS=['Supine','Side-Lying','Standing','Machine'];
 const thighPostureOf=t=>THIGH_POSTURE_TAGS.find(tag=>(t.tags||[]).includes(tag))||'';
 function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCategories=CORE_CATEGORIES,yogaCategories=YOGA_CATEGORIES,massageCategories=[],modeLabels=['맨몸근력','요가']}){
@@ -187,6 +188,7 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
  const categories=massageMode?massageCategories:yogaMode?yogaCategories:strengthCategories;
  const thighMode=title==='허벅지'&&!yogaMode&&!massageMode;
  const backStrengthMode=title==='등·가슴'&&!yogaMode&&!massageMode;
+ const isolationMode=title.startsWith('Isolation')&&!yogaMode&&!massageMode;
  const techniques=massageMode?(data.coreMassageTechniques||[]):yogaMode?(data.coreYogaTechniques||[]):(data.coreTechniques||[]);
  useEffect(()=>{
   let alive=true;
@@ -201,7 +203,7 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
  const term=search.trim().toLocaleLowerCase();
  const searchable=t=>[t.name,t.en,t.posture,t.muscles,t.description,t.notes,...(t.tags||[])].filter(Boolean).join(' ').toLocaleLowerCase().includes(term);
  const categoryMatches=i=>categories[i].toLocaleLowerCase().includes(term);
- const matchingEntries=i=>techniques.filter(t=>t.category===i&&(!term||categoryMatches(i)||searchable(t))&&(!thighMode||!postureFilters[i]||thighPostureOf(t)===postureFilters[i])&&(!backStrengthMode||!movementFilters[i]||movementPatternMatches(t,movementFilters[i])));
+ const matchingEntries=i=>techniques.filter(t=>t.category===i&&(!term||categoryMatches(i)||searchable(t))&&(!thighMode||!postureFilters[i]||thighPostureOf(t)===postureFilters[i])&&(!backStrengthMode||!movementFilters[i]||movementPatternMatches(t,movementFilters[i]))&&(!isolationMode||!movementFilters[i]||(t.tags||[]).includes(movementFilters[i])));
  const clearSearch=()=>{setSearch('');setSearchClosed([]);setOpenCategories([])};
  const totalMatches=term?categories.reduce((sum,_,i)=>sum+matchingEntries(i).length,0):techniques.length;
  const switchMode=next=>{setPostureFilters({});setMovementFilters({});setAddingTechnique(false);setTechniqueDraft({name:'',en:'',category:0,posture:'',muscles:'',description:'',tags:''});setMode(next);setSearch('');setSearchClosed([]);setOpenCategories([]);setExpanded([]);setEditingImage('');setImageDraft('');setImageError('');setImageMethod('')};
@@ -219,7 +221,7 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
     posture:techniqueDraft.posture.trim().slice(0,200),
     muscles:techniqueDraft.muscles.trim().slice(0,400),
     description:techniqueDraft.description.trim().slice(0,1500),
-    tags:[...new Set([...(thighMode&&techniqueDraft.postureTag?[techniqueDraft.postureTag]:[]),...(backStrengthMode&&techniqueDraft.movementPattern?[techniqueDraft.movementPattern]:[]),...techniqueDraft.tags.split(',').map(x=>x.trim()).filter(Boolean).filter(tag=>!thighMode||!THIGH_POSTURE_TAGS.includes(tag)||tag===techniqueDraft.postureTag)])].slice(0,12),
+    tags:[...new Set([...(thighMode&&techniqueDraft.postureTag?[techniqueDraft.postureTag]:[]),...((backStrengthMode||isolationMode)&&techniqueDraft.movementPattern?[techniqueDraft.movementPattern]:[]),...techniqueDraft.tags.split(',').map(x=>x.trim()).filter(Boolean).filter(tag=>!thighMode||!THIGH_POSTURE_TAGS.includes(tag)||tag===techniqueDraft.postureTag)])].slice(0,12),
     imageUrl:'',imagePath:'',imageRemoved:false,references:[],removedReferenceIds:[],notes:''
    }];
   });
@@ -272,6 +274,12 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
       {(BACK_MOVEMENT_PATTERNS[Number(techniqueDraft.category)]||[]).map(([en,ko])=><option key={en} value={en}>{en} · {ko}</option>)}
      </select>
     </label>}
+    {isolationMode&&<label style={{display:'grid',gap:4,fontSize:13}}>Movement Pattern
+     <select value={techniqueDraft.movementPattern||''} onChange={e=>setTechniqueDraft(v=>({...v,movementPattern:e.target.value}))} style={{fontSize:16,padding:10,border:'1px solid #d7c6e8',borderRadius:9}}>
+      <option value="">Select a pattern</option>
+      {ISOLATION_MOVEMENT_PATTERNS.map(pattern=><option key={pattern} value={pattern}>{pattern}</option>)}
+     </select>
+    </label>}
     {thighMode&&<label style={{display:'grid',gap:4,fontSize:13}}>시작 자세 태그<select value={techniqueDraft.postureTag||''} onChange={e=>setTechniqueDraft(v=>({...v,postureTag:e.target.value}))} style={{fontSize:16,padding:10,border:'1px solid #d7c6e8',borderRadius:9}}><option value="">선택 안 함</option>{THIGH_POSTURE_TAGS.map(tag=><option key={tag} value={tag}>{tag}</option>)}</select></label>}
     <label style={{display:'grid',gap:4,fontSize:13}}>영문명 (선택)<input maxLength={120} value={techniqueDraft.en} onChange={e=>setTechniqueDraft(v=>({...v,en:e.target.value}))} style={{fontSize:16,padding:10,border:'1px solid #d7c6e8',borderRadius:9}}/></label>
     <label style={{display:'grid',gap:4,fontSize:13}}>자세 (선택)<input maxLength={200} value={techniqueDraft.posture} onChange={e=>setTechniqueDraft(v=>({...v,posture:e.target.value}))} style={{fontSize:16,padding:10,border:'1px solid #d7c6e8',borderRadius:9}}/></label>
@@ -314,6 +322,16 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
          <span style={{fontWeight:selected?700:500}}>{pair?pair[0]:'전체'}</span>
          {pair&&<span style={{fontSize:11,opacity:.72}}>{pair[1]}</span>}
          <span style={{opacity:.65}}>{count}</span>
+        </button>;
+       })}
+      </div>}
+      {isolationMode&&<div role="group" aria-label={name+' Movement Pattern filter'} style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:4}}>
+       {['All',...ISOLATION_MOVEMENT_PATTERNS].map(label=>{
+        const value=label==='All'?'':label;
+        const selected=(movementFilters[i]||'')===value;
+        const count=techniques.filter(t=>t.category===i&&(!value||(t.tags||[]).includes(value))).length;
+        return <button type="button" key={label} aria-pressed={selected} onClick={()=>setMovementFilters(prev=>({...prev,[i]:value}))} style={{...btn,padding:'7px 10px',fontSize:12,borderRadius:20,background:selected?'#e9ddf7':'#fff',borderColor:selected?'#ac8fcd':'#e1d5e9',color:selected?'#624184':'inherit'}}>
+         {label} <span style={{opacity:.6}}>{count}</span>
         </button>;
        })}
       </div>}
@@ -370,6 +388,22 @@ function CoreTechniques({data,onUpdate,database,userId,title='코어',strengthCa
           row.tags=assigned?tags:[...tags,en].slice(0,12);
          })} style={{...btn,fontSize:12,borderRadius:20,padding:'6px 9px',background:assigned?'#e9ddf7':'transparent',borderColor:assigned?'#ac8fcd':'#ddd5e7',color:assigned?'#624184':'inherit'}}>
           {assigned?'✓ ':''}{en} · {ko}
+         </button>;
+        })}
+       </div>
+      </div>}
+      {isolationMode&&<div style={{margin:'10px 0',display:'grid',gap:7}}>
+       <strong style={{fontSize:13}}>Movement Pattern</strong>
+       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {ISOLATION_MOVEMENT_PATTERNS.map(pattern=>{
+         const assigned=(t.tags||[]).includes(pattern);
+         return <button key={pattern} type="button" aria-pressed={assigned} onClick={()=>onUpdate(d=>{
+          const row=(d[storageKey]||[]).find(x=>x.id===t.id);
+          if(!row)return;
+          const tags=(row.tags||[]).filter(tag=>tag!==pattern);
+          row.tags=assigned?tags:[...tags,pattern].slice(0,12);
+         })} style={{...btn,fontSize:12,borderRadius:20,padding:'6px 9px',background:assigned?'#e9ddf7':'transparent',borderColor:assigned?'#ac8fcd':'#ddd5e7',color:assigned?'#624184':'inherit'}}>
+          {assigned?'✓ ':''}{pattern}
          </button>;
         })}
        </div>
