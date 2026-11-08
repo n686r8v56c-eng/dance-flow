@@ -52,3 +52,17 @@
  .header .header-right{gap:3px}
  .header .header-right>.icon-btn{width:29px;flex-basis:29px}
 }
+
+/* Dance Flow - identical top alignment/typography across all four tabs. */
+.app .care-content .dance-studio-panel{padding:0;min-width:0}
+.app .care-content .dance-studio-title{
+  font-size:21px;
+  font-weight:750;
+  letter-spacing:-.7px;
+  line-height:1.35;
+  color:#24212b;
+  margin:0 0 23px;
+}
+@media(min-width:620px){
+ .app .care-content .dance-studio-panel{padding:0}
+}
