@@ -177,7 +177,7 @@ function seedBodyRollCatalog(items,techniques){
  return {items:nextItems,techniques:nextTechniques};
 }
 const defaultStudio=()=>({
- version:2,items:[],isolationSearchChecklist:{},isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
+ version:2,items:[],isolationSearchChecklist:{},bodyRollSearchChecklist:{},isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
  groupNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage','영상 인박스'])),
  studios:Object.fromEntries(GENRES.map(g=>[g.id,{techniques:[],yogaTechniques:[],massageTechniques:[],routines:[],logs:[]}]))
 });
@@ -206,7 +206,7 @@ function normalizeStudio(source){
    return stored&&!/^Level\s*[1-5]$/i.test(stored)?stored:name;
   });
  }
- return {...initial,items,isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
+ return {...initial,items,isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},bodyRollSearchChecklist:raw.bodyRollSearchChecklist&&typeof raw.bodyRollSearchChecklist==='object'&&!Array.isArray(raw.bodyRollSearchChecklist)?Object.fromEntries(Object.entries(raw.bodyRollSearchChecklist).filter(([id,value])=>/^g[0-4]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
 }
 async function openCache(){
  if(!('indexedDB' in window))return null;
