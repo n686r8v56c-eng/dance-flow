@@ -1,0 +1,8 @@
+.bodyroll-check-row{display:flex;align-items:stretch;gap:5px;border-bottom:1px solid #f1eaf5}
+.bodyroll-check-row:last-child{border-bottom:0}
+.bodyroll-check-state{border:0;min-width:0;flex:1;margin:0}
+.bodyroll-check-text{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+.bodyroll-check-text strong{font-size:14px;line-height:1.35}
+.bodyroll-check-text small{font-size:12px;line-height:1.45;color:#82748f}
+.bodyroll-check-copy{flex:0 0 39px;align-self:center;display:grid;place-items:center;width:39px;height:39px;background:#f3eafa;border-radius:9px;color:#7750a6}
+.bodyroll-check-notice{font-size:12px;color:#84758d;line-height:1.6;padding:6px 3px}
