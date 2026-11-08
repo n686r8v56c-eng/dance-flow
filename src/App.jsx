@@ -11,7 +11,7 @@ const GENRES=[
   {id:'bodyroll',name:'Body Roll / Wave · 바디롤·웨이브'},
   {id:'bounce',name:'Bounce / Groove · 바운스·그루브'},
   {id:'footwork',name:'Footwork · 풋워크'},
-  {id:'arms',name:'Arm Movement · 팔동작'},
+  {id:'armmovement',name:'Arm Movement · 팔동작'},
   {id:'gaze',name:'Gaze / Pose · 시선·포즈'}
 ];
 const TABS=[{id:'inbox',name:'영상 인박스'},{id:'techniques',name:'기술 라이브러리'},{id:'timer',name:'타이머'},{id:'records',name:'기록'}];
