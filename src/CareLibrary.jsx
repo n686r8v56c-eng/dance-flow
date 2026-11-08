@@ -5,6 +5,7 @@ import SearchGuide from './SearchGuide.jsx';
 import BodyRollSearchGuide from './BodyRollSearchGuide.jsx';
 import SearchChecklist from './SearchChecklist.jsx';
 import BodyRollSearchChecklist from './BodyRollSearchChecklist.jsx';
+import {MovementSearchGuide,MovementSearchChecklist} from './MovementSearchTools.jsx';
 import './CareLibrary.css';
 
 const DEFAULT_LABELS=['마사지','이완','폼롤러','도구','SNPE'];
@@ -457,10 +458,16 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
  const recovered=scoped.filter(x=>linksFor(x).length);
  const totalSavedVideos=recovered.reduce((sum,x)=>sum+linksFor(x).length,0);
  return <div className="stretching-page">
-  {showSearchGuide&&danceInbox&&(area==='bodyroll'?<BodyRollSearchGuide onClose={()=>setShowSearchGuide(false)}/>:<SearchGuide onClose={()=>setShowSearchGuide(false)}/>)}
+  {showSearchGuide&&danceInbox&&(area==='bodyroll'
+   ?<BodyRollSearchGuide onClose={()=>setShowSearchGuide(false)}/>
+   :['bounce','footwork','armmovement','gaze'].includes(area)
+    ?<MovementSearchGuide area={area} onClose={()=>setShowSearchGuide(false)}/>
+    :<SearchGuide onClose={()=>setShowSearchGuide(false)}/> )}
   {showSearchChecklist&&danceInbox&&(area==='bodyroll'
    ?<BodyRollSearchChecklist statuses={data.bodyRollSearchChecklist||{}} onSetStatus={(id,status)=>update(d=>{d.bodyRollSearchChecklist={...(d.bodyRollSearchChecklist||{}),[id]:status}})} onClose={()=>setShowSearchChecklist(false)}/>
-   :<SearchChecklist statuses={data.isolationSearchChecklist||{}} onSetStatus={(id,status)=>update(d=>{d.isolationSearchChecklist={...(d.isolationSearchChecklist||{}),[id]:status}})} onClose={()=>setShowSearchChecklist(false)}/> )}
+   :['bounce','footwork','armmovement','gaze'].includes(area)
+    ?<MovementSearchChecklist area={area} statuses={data.movementSearchChecklists?.[area]||{}} onSetStatus={(id,status)=>update(d=>{d.movementSearchChecklists={...(d.movementSearchChecklists||{}),[area]:{...(d.movementSearchChecklists?.[area]||{}),[id]:status}}})} onClose={()=>setShowSearchChecklist(false)}/>
+    :<SearchChecklist statuses={data.isolationSearchChecklist||{}} onSetStatus={(id,status)=>update(d=>{d.isolationSearchChecklist={...(d.isolationSearchChecklist||{}),[id]:status}})} onClose={()=>setShowSearchChecklist(false)}/> )}
   <div className="care-page-title"><h1>{data.groupNames?.[groupKey(area,group)]||({massage:'마사지',stretch:'스트레치',bodyweight:'맨몸근력',machine:'기계근력'})[group]}</h1>{danceInbox&&<div className="dance-inbox-actions"><button type="button" className="dance-guide-open" onClick={()=>setShowSearchGuide(true)}>검색가이드</button><button type="button" className="dance-check-open" onClick={()=>setShowSearchChecklist(true)}>체크리스트</button></div>}</div>
   <div className={'stretching-levels'+(danceInbox?' dance-genre-levels':'')} role="tablist" aria-label={danceInbox?'댄스 장르':'바디케어 단계'}>
    {labels.map((name,i)=><button key={i} type="button" role="tab" aria-selected={level===i+1} className={level===i+1?'active':''}
