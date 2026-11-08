@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {ChevronDown,ChevronUp,Link2,ExternalLink,Trash2,Plus,Pencil,ArrowUp,ArrowDown,RotateCcw,Download,Upload,X} from 'lucide-react';
 import {BEAUTY_SEED_DRILLS} from './beautySeedDrills.js';
 import SearchGuide from './SearchGuide.jsx';
+import BodyRollSearchGuide from './BodyRollSearchGuide.jsx';
 import SearchChecklist from './SearchChecklist.jsx';
 import BodyRollSearchChecklist from './BodyRollSearchChecklist.jsx';
 import './CareLibrary.css';
@@ -456,7 +457,7 @@ export default function CareLibrary({data,onUpdate,area,group,sync,readOnly=fals
  const recovered=scoped.filter(x=>linksFor(x).length);
  const totalSavedVideos=recovered.reduce((sum,x)=>sum+linksFor(x).length,0);
  return <div className="stretching-page">
-  {showSearchGuide&&danceInbox&&<SearchGuide onClose={()=>setShowSearchGuide(false)}/>}
+  {showSearchGuide&&danceInbox&&(area==='bodyroll'?<BodyRollSearchGuide onClose={()=>setShowSearchGuide(false)}/>:<SearchGuide onClose={()=>setShowSearchGuide(false)}/>)}
   {showSearchChecklist&&danceInbox&&(area==='bodyroll'
    ?<BodyRollSearchChecklist statuses={data.bodyRollSearchChecklist||{}} onSetStatus={(id,status)=>update(d=>{d.bodyRollSearchChecklist={...(d.bodyRollSearchChecklist||{}),[id]:status}})} onClose={()=>setShowSearchChecklist(false)}/>
    :<SearchChecklist statuses={data.isolationSearchChecklist||{}} onSetStatus={(id,status)=>update(d=>{d.isolationSearchChecklist={...(d.isolationSearchChecklist||{}),[id]:status}})} onClose={()=>setShowSearchChecklist(false)}/> )}
