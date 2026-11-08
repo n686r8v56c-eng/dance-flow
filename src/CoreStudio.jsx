@@ -654,7 +654,6 @@ export default function CoreStudio({area='core',tab,data,onUpdate,sync,database,
   }};
  });
  if(tab==='inbox')return <section aria-label="영상 인박스">
-  <div style={{padding:'14px 16px 4px'}}><h2 style={{margin:'0 0 4px',fontSize:20}}>영상 인박스</h2><p style={{margin:'0 0 10px',fontSize:13,opacity:.7}}>영상 링크를 모으고 기술은 라이브러리에서 정리해.</p></div>
   <CareLibrary data={data} onUpdate={onUpdate} area={area} group="massage" sync={sync} database={database} userId={userId}/>
  </section>;
  if(tab==='timer'){
