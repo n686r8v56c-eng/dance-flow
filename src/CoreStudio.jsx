@@ -1,3 +1,4 @@
+import {MOVEMENT_CATALOGS} from './movementCatalogs.js';
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import CareLibrary from './CareLibrary.jsx';
 import './RoutineTimer.css';
@@ -13,10 +14,10 @@ const LEGS_MASSAGE_CATEGORIES=['종아리 마사지','발목 주변','발바닥 
 const STUDIO_STRENGTH_CATEGORIES={
  isolation:['Head','Neck','Shoulders','Chest / Rib Cage','Abdomen','Pelvis / Hips','Arms','Legs'],
  bodyroll:['Forward Body Roll','Backward Body Roll','Side Body Roll','Downward Body Wave','Upward Body Wave','Lateral Body Wave','Circular Body Wave','Segmented Body Wave'],
- bounce:['기술'],
- footwork:['기술'],
- armmovement:['기술'],
- gaze:['기술'],
+ bounce:MOVEMENT_CATALOGS.bounce.categories,
+ footwork:MOVEMENT_CATALOGS.footwork.categories,
+ armmovement:MOVEMENT_CATALOGS.armmovement.categories,
+ gaze:MOVEMENT_CATALOGS.gaze.categories,
  legs:LEGS_STRETCH_CATEGORIES,
  glutes:['Quadruped','Supine','Prone','Side-Lying','Half Kneeling','Tall Kneeling','Seated','Bench-Supported','Bilateral Standing','Single-Leg Standing','Split Stance','Kickstand / B-Stance','Step up','Legacy Techniques · Review'],
  hips:['90/90 Sitting','Quadruped','Half-Kneeling Lunge','Supine','Standing','Deep Squat','Side-Kneeling','Prone','Long Sitting','Frog','Z-Shaped Legs'],
