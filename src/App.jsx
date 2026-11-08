@@ -4,6 +4,7 @@ import {Download,Upload,LogOut,RefreshCw,ChevronDown} from 'lucide-react';
 import AuthGate from './AuthGate.jsx';
 import CoreStudio from './CoreStudio.jsx';
 import {ISOLATION_SEARCH_SECTIONS} from './SearchGuide.jsx';
+import {BODYROLL_STYLE_SECTIONS} from './bodyRollCatalog.js';
 import {supabase,getRemote,saveRemote} from './supabase.js';
 import './style.css';
 
@@ -63,6 +64,7 @@ const TABS=[{id:'inbox',name:'영상 인박스'},{id:'techniques',name:'기술 �
 const CACHE='dance-flow-v2:';
 const ISOLATION_INBOX_SEED_VERSION=1;
 const ISOLATION_TECHNIQUE_SEED_VERSION=1;
+const BODYROLL_CATALOG_SEED_VERSION=1;
 function seedIsolationInbox(items){
  // Seed five genre tabs using the already-curated search checklist catalog.
  // Existing user-created records, linked videos and archives are left untouched.
@@ -128,8 +130,54 @@ function seedIsolationTechniques(existingTechniques){
  });
  return result;
 }
+// Insert genre-specific video inbox titles and merge shared techniques by category.
+function seedBodyRollCatalog(items,techniques){
+ const nextItems=[...items],nextTechniques=[...techniques];
+ const categoryNames=new Map();
+ nextTechniques.forEach(row=>{
+  const category=Number(row?.category);
+  if(!categoryNames.has(category))categoryNames.set(category,new Set());
+  const name=String(row?.name||row?.en||'').trim().toLocaleLowerCase();
+  if(name)categoryNames.get(category).add(name);
+ });
+ const catalog=new Map();
+ BODYROLL_STYLE_SECTIONS.forEach((section,genreIndex)=>{
+  const level=genreIndex+1;
+  const existing=nextItems.filter(row=>row.area==='bodyroll'&&row.group==='massage'&&Number(row.level||1)===level);
+  const present=new Set(existing.map(row=>String(row.en||row.title||row.ko||'').trim().toLocaleLowerCase()));
+  let sort=Math.max(999,...existing.map(row=>Number(row.sort)||0))+1;
+  section.items.forEach(([category,name],position)=>{
+   const key=name.toLocaleLowerCase();
+   if(!present.has(key)){
+    nextItems.push({
+     id:'dance:bodyroll:inbox:v1:'+genreIndex+':'+position,
+     area:'bodyroll',group:'massage',level,sort:sort++,archived:false,
+     title:name,en:name,ko:'',note:'',videos:[]
+    });
+    present.add(key);
+   }
+   const group=category+':'+key;
+   if(!catalog.has(group))catalog.set(group,{category,name,genres:[]});
+   if(!catalog.get(group).genres.includes(section.genre))catalog.get(group).genres.push(section.genre);
+  });
+ });
+ let position=0;
+ for(const item of catalog.values()){
+  const key=item.name.toLocaleLowerCase();
+  const present=categoryNames.get(item.category)||new Set();
+  if(present.has(key))continue;
+  nextTechniques.push({
+   id:'dance:bodyroll:technique:v1:'+position,
+   name:item.name,en:'',category:item.category,
+   posture:'',muscles:'',description:'',tags:[],danceGenres:item.genres,
+   imageUrl:'',imagePath:'',imageRemoved:false,references:[],removedReferenceIds:[],notes:''
+  });
+  present.add(key);categoryNames.set(item.category,present);position++;
+ }
+ return {items:nextItems,techniques:nextTechniques};
+}
 const defaultStudio=()=>({
- version:2,items:[],isolationSearchChecklist:{},isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
+ version:2,items:[],isolationSearchChecklist:{},isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,levelNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage',[...VIDEO_GENRE_TABS[g.id]]])),
  groupNames:Object.fromEntries(GENRES.map(g=>[g.id+':massage','영상 인박스'])),
  studios:Object.fromEntries(GENRES.map(g=>[g.id,{techniques:[],yogaTechniques:[],massageTechniques:[],routines:[],logs:[]}]))
 });
@@ -137,12 +185,17 @@ function normalizeStudio(source){
  const initial=defaultStudio(),raw=source&&typeof source==='object'?source:{};
  const shouldSeed=Number(raw.isolationInboxSeedVersion||0)<ISOLATION_INBOX_SEED_VERSION;
  const shouldSeedTechniques=Number(raw.isolationTechniqueSeedVersion||0)<ISOLATION_TECHNIQUE_SEED_VERSION;
+ const shouldSeedBodyRoll=Number(raw.bodyRollCatalogSeedVersion||0)<BODYROLL_CATALOG_SEED_VERSION;
  const studios={...initial.studios};
  for(const genre of GENRES){
   const s=raw.studios?.[genre.id]||{};
   studios[genre.id]=Object.fromEntries(['techniques','yogaTechniques','massageTechniques','routines','logs'].map(key=>[key,Array.isArray(s[key])?s[key]:[]]));
   if(genre.id==='isolation'&&shouldSeedTechniques)studios[genre.id].techniques=seedIsolationTechniques(studios[genre.id].techniques);
  }
+ const existingItems=shouldSeed?seedIsolationInbox(Array.isArray(raw.items)?raw.items:[]):Array.isArray(raw.items)?raw.items:[];
+ const bodyRollSeed=shouldSeedBodyRoll?seedBodyRollCatalog(existingItems,studios.bodyroll.techniques):null;
+ if(bodyRollSeed)studios.bodyroll.techniques=bodyRollSeed.techniques;
+ const items=bodyRollSeed?bodyRollSeed.items:existingItems;
  const savedNames=raw.levelNames&&typeof raw.levelNames==='object'&&!Array.isArray(raw.levelNames)?raw.levelNames:{};
  const levelNames={...initial.levelNames,...savedNames};
  // Map generic old Level 1-5 labels into the new genre labels without touching video items.
@@ -153,7 +206,7 @@ function normalizeStudio(source){
    return stored&&!/^Level\s*[1-5]$/i.test(stored)?stored:name;
   });
  }
- return {...initial,items:shouldSeed?seedIsolationInbox(Array.isArray(raw.items)?raw.items:[]):Array.isArray(raw.items)?raw.items:[],isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
+ return {...initial,items,isolationInboxSeedVersion:ISOLATION_INBOX_SEED_VERSION,isolationTechniqueSeedVersion:ISOLATION_TECHNIQUE_SEED_VERSION,bodyRollCatalogSeedVersion:BODYROLL_CATALOG_SEED_VERSION,isolationSearchChecklist:raw.isolationSearchChecklist&&typeof raw.isolationSearchChecklist==='object'&&!Array.isArray(raw.isolationSearchChecklist)?Object.fromEntries(Object.entries(raw.isolationSearchChecklist).filter(([id,value])=>/^g[0-4]:p[0-7]:t\d+$/.test(id)&&[0,1,2].includes(value))):{},levelNames,groupNames:{...initial.groupNames,...(raw.groupNames||{})},studios};
 }
 async function openCache(){
  if(!('indexedDB' in window))return null;
@@ -209,7 +262,7 @@ function DanceStudio(){
      const remoteStudio=remote?.payload?.danceStudioV2;
      const incoming=normalizeStudio(remoteStudio);
      // Persist first-time catalog migration, but never overwrite a failed remote read.
-     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION && Number(remoteStudio?.isolationTechniqueSeedVersion||0)>=ISOLATION_TECHNIQUE_SEED_VERSION;
+     skipFirst.current=Number(remoteStudio?.isolationInboxSeedVersion||0)>=ISOLATION_INBOX_SEED_VERSION && Number(remoteStudio?.isolationTechniqueSeedVersion||0)>=ISOLATION_TECHNIQUE_SEED_VERSION && Number(remoteStudio?.bodyRollCatalogSeedVersion||0)>=BODYROLL_CATALOG_SEED_VERSION;
      setData(incoming);setLoaded(true);setSync('동기화됨');
      writeCache(id,incoming);
     }catch(error){
